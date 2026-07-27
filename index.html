@@ -33,6 +33,7 @@ tr:hover td{background:#f4f7fa}
 .rb1{background:#c8a400}.rb2{background:#888}.rb3{background:#a0522d}
 .md-badge{background:#f0f4f8;color:#005078;border:1px solid #cdd7e0;padding:1px 7px;border-radius:10px;font-size:.65rem;font-weight:700;white-space:nowrap}
 .cat-badge{background:#e8f4fd;color:#005078;padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.cat-badge-neg{background:#fbe4e1;color:#c0392b}
 .ov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px}
 .ov-card{background:#fff;border-radius:10px;padding:16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.12)}
 .ov-n{font-size:2rem;font-weight:900;color:#005078}.ov-l{font-size:.72rem;color:#888;font-weight:600;letter-spacing:.7px;text-transform:uppercase;margin-top:3px}
@@ -459,7 +460,7 @@ tr:hover td{background:#f4f7fa}
 </div>
 
 <script>
-const CATS = ['Abschlussspiel','Tschechenrolle','Spielform mit Inhalt','Torschuss','1vs1','3vs3 Umschalten','Hannes','Sonstiges'];
+const CATS = ['Abschlussspiel','Tschechenrolle','Spielform mit Inhalt','Torschuss','1vs1','3vs3 Umschalten','Hannes','Sonstiges','Strafpunkte'];
 const MONTHNAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const WEEKDAYNAMES = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
 const PW = 'training2026';
@@ -639,7 +640,7 @@ function renderOverview(){
   document.getElementById('ov-material').innerHTML = md.length ? md.map(n=>`<span class="md-badge">🧺 ${n}</span>`).join(' ') :
     '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Ergebnisse in diesem Monat erfasst.</p>';
 
-  document.getElementById('ov-cats').innerHTML = CATS.map(c=>`<span class="cat-badge">${c}</span>`).join('');
+  document.getElementById('ov-cats').innerHTML = CATS.map(c=>`<span class="cat-badge${c==='Strafpunkte'?' cat-badge-neg':''}">${c}</span>`).join('');
 }
 
 // ── RENDER: TABELLE ──────────────────────────────────────────
@@ -695,7 +696,7 @@ function renderVerlauf(){
     return `<div class="entry-card">
       <div class="entry-hdr">
         <span class="entry-date">${fmtDate(e.date)}</span>
-        <span class="cat-badge">${e.category}</span>
+        <span class="cat-badge${e.category==='Strafpunkte'?' cat-badge-neg':''}">${e.category}</span>
       </div>
       <div class="entry-pts">${pts.length?pts.map(([n,v])=>`<span class="pt-chip">${n}: <b>${v}</b></span>`).join(''):'<span style="font-size:.75rem;color:#aaa">Keine Punkte eingetragen</span>'}</div>
     </div>`;
@@ -768,7 +769,7 @@ function renderMeinSpieler(){
     </tbody></table></div>` : '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Leistungsdaten für diesen Spieler erfasst.</p>'}
   </div>
   <div class="card"><div class="card-title">🗓️ Verlauf</div>`;
-  html += mine.length ? mine.map(e=>`<div class="entry-card"><div class="entry-hdr"><span class="entry-date">${fmtDate(e.date)}</span><span class="cat-badge">${e.category}</span></div><div class="entry-pts"><span class="pt-chip">Punkte: <b>${e.points[selPlayer]}</b></span></div></div>`).join('')
+  html += mine.length ? mine.map(e=>`<div class="entry-card"><div class="entry-hdr"><span class="entry-date">${fmtDate(e.date)}</span><span class="cat-badge${e.category==='Strafpunkte'?' cat-badge-neg':''}">${e.category}</span></div><div class="entry-pts"><span class="pt-chip">Punkte: <b>${e.points[selPlayer]}</b></span></div></div>`).join('')
     : '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Einträge.</p>';
   html += '</div>';
   box.innerHTML = html;
