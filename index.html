@@ -179,7 +179,8 @@ tr:hover td{background:#f4f7fa}
   <div class="nav-tab" onclick="showPage('meinspieler',this)">⭐ Mein Spieler</div>
   <div class="nav-tab" onclick="showPage('leistung',this)">🏃 Leistungsdiagnostik</div>
   <div class="nav-tab" onclick="showPage('video',this)">🎥 Videoanalyse</div>
-  <div class="nav-tab" onclick="showPage('spielprinzipien',this)">📐 Spielprinzipien</div>
+  <!-- Spielprinzipien-Reiter ist auf Wunsch aktuell versteckt. Zum Wieder-Einblenden: style="display:none" entfernen -->
+  <div class="nav-tab" onclick="showPage('spielprinzipien',this)" style="display:none">📐 Spielprinzipien</div>
   <div class="nav-tab" onclick="showPage('entwicklung',this)">🧭 Individuelle Entwicklung</div>
 </div>
 <div class="content">
@@ -484,7 +485,10 @@ function defD(){
         'EDDY':   {groesse:160,   s10a:2.01, s10b:1.87, s20a:3.41, s20b:3.42, s30a:5.08, s30b:5.21, weit:[1.94,1.92,null], yoyo:14.2},
         'LEO':    {groesse:153,   s10a:1.89, s10b:1.84, s20a:3.39, s20b:3.33, s30a:4.71, s30b:4.75, weit:[2.03,2.07,null], yoyo:17.3},
         'MATTIS': {groesse:187,   s10a:1.69, s10b:1.8,  s20a:3.01, s20b:3.12, s30a:4.42, s30b:4.51, weit:[2.18,2.26,null], yoyo:17.3},
-        'MYKOLA': {groesse:160,   s10a:1.9,  s10b:2,    s20a:3.27, s20b:3.41, s30a:4.94, s30b:4.93, weit:[1.87,1.82,null], yoyo:15.7}
+        'MYKOLA': {groesse:160,   s10a:1.9,  s10b:2,    s20a:3.27, s20b:3.41, s30a:4.94, s30b:4.93, weit:[1.87,1.82,null], yoyo:15.7},
+        'FINNI':  {groesse:154,   s10a:1.92, s10b:1.9,  s20a:3.28, s20b:3.33, s30a:4.66, s30b:4.64, weit:[1.94,1.99,null], yoyo:15.2},
+        'GAS':    {groesse:158,   s10a:1.95, s10b:1.96, s20a:3.47, s20b:3.52, s30a:4.95, s30b:4.93, weit:[1.97,1.81,null], yoyo:15.7},
+        'NJABU':  {groesse:160,   s10a:1.92, s10b:1.84, s20a:3.31, s20b:3.31, s30a:4.73, s30b:4.69, weit:[2.01,1.92,null], yoyo:15.1}
       }}
     ]
   };
