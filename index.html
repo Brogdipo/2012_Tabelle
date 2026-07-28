@@ -115,18 +115,18 @@ tr:hover td{background:#f4f7fa}
 //    ES-Module werden von Browsern bei file:// aus Sicherheitsgründen blockiert) ─────────
 (function(){
   const firebaseConfig = {
-    apiKey: "AIzaSyDl4GVJBq3qrvTdNzHRWMLdFFYXZBeKSsI",
-    authDomain: "vicky-turnier.firebaseapp.com",
-    projectId: "vicky-turnier",
-    storageBucket: "vicky-turnier.firebasestorage.app",
-    messagingSenderId: "744381828845",
-    appId: "1:744381828845:web:f52c960d168b16e66346e4"
+    apiKey: "AIzaSyAeVTHGEURbFXOopDrd0DUKz-RyNTkWhe0",
+    authDomain: "trainingstabelle.firebaseapp.com",
+    projectId: "trainingstabelle",
+    storageBucket: "trainingstabelle.firebasestorage.app",
+    messagingSenderId: "266652562041",
+    appId: "1:266652562041:web:c02e016a6dd83f104a9aa8"
   };
 
   try {
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    // Eigenes Dokument, damit die Trainings-Tabelle nichts mit dem Turnier-Tool teilt
+    // Eigenes Dokument innerhalb des eigenen Projekts
     const DOC_COL = "training", DOC_ID = "daten";
     const ref = db.collection(DOC_COL).doc(DOC_ID);
 
