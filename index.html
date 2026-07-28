@@ -517,15 +517,18 @@ function save(){
   if(window.fbSave){
     _ignoreNextUpdate = true;
     window.fbSave(D);
-    setTimeout(()=>{_ignoreNextUpdate=false;}, 2000);
+    setTimeout(()=>{_ignoreNextUpdate=false;}, 4000);
   }
 }
 function initFirebase(){
   window.fbInit(defD(), function(data){
     if(_ignoreNextUpdate) return;
+    // Solange das Admin-Fenster offen ist, NICHT das Admin-Formular neu aufbauen –
+    // sonst gehen gerade eingetippte, noch nicht gespeicherte Punkte verloren.
+    const adminOpen = document.getElementById('admin-overlay').style.display === 'block';
     D = mergeDefaults(data);
     renderAll();
-    if(typeof adminRefresh==='function') try{adminRefresh();}catch(e){}
+    if(!adminOpen && typeof adminRefresh==='function') try{adminRefresh();}catch(e){}
   });
 }
 if(window.firebaseReady){ initFirebase(); }
