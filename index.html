@@ -132,8 +132,13 @@ tr:hover td{background:#f4f7fa}
 
     window.fbStatus = 'connecting'; // 'online' | 'offline'
     window.fbSave = async function(data) {
-      try { await ref.set({ payload: JSON.stringify(data) }); window.fbStatus = 'online'; }
-      catch(e) { console.error("Firebase save error:", e); window.fbStatus = 'offline'; }
+      console.log('%c[DIAGNOSE] Starte Firestore-Schreibvorgang, entries:', 'color:blue', (data.entries||[]).length);
+      try {
+        await ref.set({ payload: JSON.stringify(data) });
+        window.fbStatus = 'online';
+        console.log('%c[DIAGNOSE] Firestore-Schreibvorgang ERFOLGREICH abgeschlossen', 'color:green;font-weight:bold');
+      }
+      catch(e) { console.error("[DIAGNOSE] Firebase save error:", e); window.fbStatus = 'offline'; }
     };
     window.fbListen = function(callback) {
       ref.onSnapshot((snap) => {
@@ -161,6 +166,7 @@ tr:hover td{background:#f4f7fa}
     window.fbListen = function(){};
   }
   window.firebaseReady = true;
+  console.log('%c[DIAGNOSE] index.html Version FIXV3 geladen um ' + new Date().toLocaleTimeString(), 'color:blue;font-weight:bold');
   window.dispatchEvent(new Event('firebaseReady'));
 })();
 </script>
