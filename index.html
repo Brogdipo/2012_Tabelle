@@ -153,8 +153,12 @@ tr:hover td{background:#f4f7fa}
       try {
         const snap = await ref.get();
         window.fbStatus = 'online';
+        // WICHTIG: Beim Init NIE automatisch in Firestore schreiben, auch wenn das Dokument
+        // (vermeintlich) fehlt – sonst können echte Daten durch einen leeren Stand überschrieben
+        // werden (z.B. bei kurzen Netzwerk-Hängern). Es wird erst geschrieben, wenn aktiv etwas
+        // eingetragen wird (siehe save()).
         if (snap.exists) callback(JSON.parse(snap.data().payload));
-        else { await window.fbSave(defaultData); callback(defaultData); }
+        else { console.warn('[DIAGNOSE] Kein Firestore-Dokument gefunden – zeige Default-Daten, schreibe NICHT automatisch'); callback(defaultData); }
       } catch(e) { console.error("Firebase init error:", e); window.fbStatus = 'offline'; callback(defaultData); }
       window.fbListen(callback);
     };
