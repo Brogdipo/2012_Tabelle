@@ -144,8 +144,14 @@ tr:hover td{background:#f4f7fa}
       ref.onSnapshot((snap) => {
         window.fbStatus = 'online';
         if (snap.exists) {
-          try { callback(JSON.parse(snap.data().payload)); }
+          try {
+            const parsed = JSON.parse(snap.data().payload);
+            console.log('%c[DIAGNOSE] fbListen (Live-Update): entries=' + (parsed.entries||[]).length, 'color:teal;font-weight:bold');
+            callback(parsed);
+          }
           catch(e) { console.error("Firebase parse error:", e); }
+        } else {
+          console.log('%c[DIAGNOSE] fbListen: Dokument existiert NICHT', 'color:red;font-weight:bold');
         }
       }, (err) => { console.error("Firebase listen error:", err); window.fbStatus = 'offline'; });
     };
@@ -153,12 +159,14 @@ tr:hover td{background:#f4f7fa}
       try {
         const snap = await ref.get();
         window.fbStatus = 'online';
-        // WICHTIG: Beim Laden NIE automatisch in die Datenbank schreiben!
-        // Vorher wurde hier bei einem fehlenden/verzögerten Dokument automatisch
-        // mit leeren Standarddaten überschrieben — das hat echte gespeicherte
-        // Ergebnisse gelöscht. Jetzt wird nur noch gelesen, nie automatisch geschrieben.
-        if (snap.exists) callback(JSON.parse(snap.data().payload));
-        else callback(defaultData);
+        if (snap.exists) {
+          const parsed = JSON.parse(snap.data().payload);
+          console.log('%c[DIAGNOSE] fbInit: Dokument existiert. entries=' + (parsed.entries||[]).length, 'color:orange;font-weight:bold');
+          callback(parsed);
+        } else {
+          console.log('%c[DIAGNOSE] fbInit: Dokument existiert NICHT (snap.exists=false)', 'color:red;font-weight:bold');
+          callback(defaultData);
+        }
       } catch(e) { console.error("Firebase init error:", e); window.fbStatus = 'offline'; callback(defaultData); }
       window.fbListen(callback);
     };
