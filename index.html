@@ -91,6 +91,15 @@ tr:hover td{background:#f4f7fa}
 .plist-item span{flex:1;font-size:.85rem;font-weight:600;color:#003d5c}
 .small-btn{font-size:.68rem;background:#005078;color:#fad200;border:none;padding:3px 8px;border-radius:4px;cursor:pointer}
 .warn{color:#c0392b;font-size:.75rem;margin-top:4px}
+.wz-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:4px;max-width:320px;background:#2e8b3d;border:3px solid #fff;border-radius:8px;padding:4px;box-shadow:0 0 0 1px #1f6b2c}
+.wz-cell{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);border-radius:5px;color:#fff;font-size:.65rem;font-weight:700;text-align:center;padding:11px 4px;cursor:pointer;user-select:none;transition:background .15s}
+.wz-cell:hover{background:rgba(255,255,255,.25)}
+.wz-cell.wz-gelb{background:#fad200;color:#003d5c;border-color:#fad200}
+.wz-cell.wz-gruen{background:#27ae60;color:#fff;border-color:#1e8449}
+.wz-badges{display:flex;gap:6px;flex-wrap:wrap}
+.wz-badge{padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700}
+.wz-badge.wz-b-gruen{background:#27ae60;color:#fff}
+.wz-badge.wz-b-gelb{background:#fad200;color:#003d5c}
 .offline-badge{background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;margin-left:6px;vertical-align:middle;white-space:nowrap}
 .sp-hero{background:linear-gradient(135deg,#005078,#003d5c);color:#fff;border-radius:12px;padding:26px 22px;margin-bottom:14px;text-align:center}
 .sp-hero h2{font-size:1.5rem;font-weight:900;letter-spacing:1.5px;color:#fad200;text-transform:uppercase;margin-bottom:6px}
@@ -435,7 +444,10 @@ tr:hover td{background:#f4f7fa}
         <div class="fg"><label>5) Plan: Wie werde ich darin besser bzw. nutze sie häufiger?</label><textarea id="e-plan" rows="2"></textarea></div>
         <div class="fg"><label>6) Größtes Entwicklungsfeld</label><input type="text" id="e-feld"></div>
         <div class="fg"><label>7) Was will ich tun, um hierin besser zu werden?</label><textarea id="e-tun" rows="2"></textarea></div>
-        <div class="fg"><label>8) Wo fühle ich mich am wohlsten?</label><input type="text" id="e-wohlsten"></div>
+        <div class="fg"><label>8) Wo fühle ich mich am wohlsten?</label>
+          <div style="font-size:.75rem;color:#888;margin-bottom:6px">Auf ein Feld tippen: 1× = 🟡 auch gut, 2× = 🟢 am wohlsten, 3× = wieder leer. Max. 1 grün, max. 2 gelb.</div>
+          <div id="e-wohlsten-grid" class="wz-grid"></div>
+        </div>
         <div style="font-size:.78rem;color:#888;margin:8px 0 4px">9) Wo werde ich gerne angespielt? (1 gar nicht gerne – 5 sehr gerne)</div>
         <div class="fr">
           <div class="fg"><label>In der Tiefe</label><select id="e-z-tiefe"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
@@ -444,7 +456,7 @@ tr:hover td{background:#f4f7fa}
           <div class="fg"><label>In der Breite</label><select id="e-z-breite"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
           <div class="fg"><label>Als Anker</label><select id="e-z-anker"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
         </div>
-        <div style="margin-top:6px"><button class="btn bg" onclick="saveEntwForm()">💾 Profil speichern</button> <span id="e-savemsg" style="font-size:.78rem;color:#27ae60;margin-left:8px"></span></div>
+        <div style="margin-top:6px"><button class="btn bg" onclick="saveEntwForm()">💾 Profil speichern</button> <button class="btn bb" onclick="importMoritzProfil()">📥 Moritz-Profil aus PDF importieren</button> <span id="e-savemsg" style="font-size:.78rem;color:#27ae60;margin-left:8px"></span></div>
       </div>
 
       <div class="asec">
@@ -593,17 +605,18 @@ function buildTable(entries){
       map[name].einsaetze++;
     });
   });
-  return Object.values(map).sort((a,b)=>b.points-a.points || a.name.localeCompare(b.name));
+  return Object.values(map).sort((a,b)=>b.points-a.points || a.einsaetze-b.einsaetze || a.name.localeCompare(b.name));
 }
 
 // Materialdienst: die 4 punkteschwächsten Spieler des AKTUELLEN Monats (über alle Kategorien),
 // unabhängig vom aktuell gewählten Tabellen-Filter.
+// Nutzt exakt dieselbe Sortierlogik wie buildTable() (bei Punktgleichstand: weniger Einsätze
+// = besser eingestuft, bleibt also eher vom Materialdienst verschont), nur eben von hinten her.
 function materialdienstListe(){
   const entries = filteredEntries(currentMonthKey(),'all');
   const tab = buildTable(entries).filter(r=>r.einsaetze>0);
   if(!tab.length) return [];
-  tab.sort((a,b)=>a.points-b.points || a.name.localeCompare(b.name));
-  return tab.slice(0, Math.min(4, tab.length)).map(r=>r.name);
+  return tab.slice(-Math.min(4, tab.length)).reverse().map(r=>r.name);
 }
 
 function availableMonths(){
@@ -791,6 +804,43 @@ function renderMeinSpieler(){
 
 // ── RENDER: INDIVIDUELLE ENTWICKLUNG ─────────────────────────
 const ZONE_LABELS = {tiefe:'In der Tiefe', vorne:'Tasche – Blick nach vorne', hinten:'Tasche – Blick nach hinten', breite:'In der Breite', anker:'Als Anker'};
+// Positionsfeld für Frage 8: 3x3-Raster über den Platz, klickbar.
+// Klick-Zyklus je Zelle: leer → gelb (auch gut) → grün (am wohlsten) → leer.
+const WOHLSTEN_ZONES = [
+  {id:'st_li', label:'Sturm links'},   {id:'st_mi', label:'Sturm Mitte'},   {id:'st_re', label:'Sturm rechts'},
+  {id:'om_li', label:'Offensives Mittelfeld links'}, {id:'om_mi', label:'Offensives Mittelfeld Mitte'}, {id:'om_re', label:'Offensives Mittelfeld rechts'},
+  {id:'dm_li', label:'Defensives Mittelfeld links'}, {id:'dm_mi', label:'Defensives Mittelfeld Mitte'}, {id:'dm_re', label:'Defensives Mittelfeld rechts'},
+  {id:'def_li', label:'Abwehr links'}, {id:'def_mi', label:'Abwehr Mitte'}, {id:'def_re', label:'Abwehr rechts'}
+];
+let currentWohlsten = {gruen:[], gelb:[]};
+function wohlstenZoneState(id){
+  if(currentWohlsten.gruen.includes(id)) return 'gruen';
+  if(currentWohlsten.gelb.includes(id)) return 'gelb';
+  return '';
+}
+function toggleWohlstenZone(id){
+  const state = wohlstenZoneState(id);
+  currentWohlsten.gruen = currentWohlsten.gruen.filter(z=>z!==id);
+  currentWohlsten.gelb = currentWohlsten.gelb.filter(z=>z!==id);
+  if(state===''){
+    if(currentWohlsten.gelb.length>=2){ alert('Maximal 2 gelbe Zonen ("auch gut"). Bitte zuerst eine abwählen.'); }
+    else currentWohlsten.gelb.push(id);
+  } else if(state==='gelb'){
+    if(currentWohlsten.gruen.length>=1){ alert('Maximal 1 grüne Zone ("am wohlsten"). Bitte zuerst abwählen.'); }
+    else currentWohlsten.gruen.push(id);
+  }
+  // state 'gruen' → bleibt leer (Zyklus abgeschlossen)
+  renderWohlstenGrid();
+}
+function renderWohlstenGrid(){
+  const box = document.getElementById('e-wohlsten-grid');
+  if(!box) return;
+  box.innerHTML = WOHLSTEN_ZONES.map(z=>{
+    const st = wohlstenZoneState(z.id);
+    const cls = st==='gruen' ? 'wz-gruen' : (st==='gelb' ? 'wz-gelb' : '');
+    return `<div class="wz-cell ${cls}" onclick="toggleWohlstenZone('${z.id}')" title="${z.label}">${z.label}</div>`;
+  }).join('');
+}
 function renderEntwicklung(){
   renderPlayerChips();
   const box = document.getElementById('entw-content');
@@ -815,26 +865,60 @@ function renderEntwicklung(){
     <div class="fg"><label style="font-weight:700;color:#003d5c">5) Plan: Wie werde ich darin besser?</label><div>${p.plan||'–'}</div></div>
     <div class="fg"><label style="font-weight:700;color:#003d5c">6) Größtes Entwicklungsfeld</label><div>${p.feld||'–'}</div></div>
     <div class="fg"><label style="font-weight:700;color:#003d5c">7) Was will ich tun, um besser zu werden?</label><div>${p.tun||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">8) Wo fühle ich mich am wohlsten?</label><div>${p.wohlsten||'–'}</div></div>
+    <div class="fg"><label style="font-weight:700;color:#003d5c">8) Wo fühle ich mich am wohlsten?</label>${renderWohlstenDisplay(p.wohlsten)}</div>
   </div>
   <div class="card"><div class="card-title">9) Wo werde ich gerne angespielt?</div>
     <table><thead><tr><th>Zone</th><th>Bewertung</th></tr></thead><tbody>${zonenRows}</tbody></table>
   </div>`;
 }
+function wohlstenLabel(id){ const z = WOHLSTEN_ZONES.find(z=>z.id===id); return z ? z.label : id; }
+function renderWohlstenDisplay(w){
+  if(!w) return '<div>–</div>';
+  if(typeof w === 'string') return `<div>${w}</div>`; // alter Freitext-Eintrag
+  const badges = [
+    ...(w.gruen||[]).map(id=>`<span class="wz-badge wz-b-gruen">🟢 ${wohlstenLabel(id)}</span>`),
+    ...(w.gelb||[]).map(id=>`<span class="wz-badge wz-b-gelb">🟡 ${wohlstenLabel(id)}</span>`)
+  ];
+  return badges.length ? `<div class="wz-badges">${badges.join('')}</div>` : '<div>–</div>';
+}
 function fillEntwPlayerSelect(){
   const sel = document.getElementById('e-player');
-  if(!sel) return;
   const cur = sel.value;
   sel.innerHTML = '<option value="">– Spieler wählen –</option>' + D.players.slice().sort().map(p=>`<option value="${p}">${p}</option>`).join('');
   if(D.players.includes(cur)) sel.value = cur;
   loadEntwForm();
 }
+function importMoritzProfil(){
+  if(!confirm('Profil von Moritz mit den Daten aus dem PDF anlegen/überschreiben?')) return;
+  const sel = document.getElementById('e-player');
+  if(!D.players.includes('MORITZ')){ alert('Spieler "MORITZ" wurde nicht in der Spielerliste gefunden.'); return; }
+  sel.value = 'MORITZ';
+  document.getElementById('e-geburtsdatum').value = '2012-11-20';
+  document.getElementById('e-datum').value = '2026-07-27';
+  document.getElementById('e-faehigkeit').value = 'Platzübersicht / Situationen erkennen';
+  document.getElementById('e-haeufigkeit').value = '4';
+  document.getElementById('e-hilft').value = 'Es hilft mir, wach im Kopf zu sein und das erreiche ich über Ausdauer und Ruhe am Ball';
+  document.getElementById('e-hindert').value = 'Hektik und Bedrängnis';
+  document.getElementById('e-plan').value = 'Übungen / Spielformen bei denen Situationen in Bedrängnis entstehen und ich Lösungen finden muss';
+  document.getElementById('e-feld').value = 'Mehr Lautstärke reinbringen / mehr Bälle fordern (im Spiel)';
+  document.getElementById('e-tun').value = 'Übers Training ins Spiel bringen, immer wieder daran denken und es mir vornehmen';
+  currentWohlsten = {gruen:['st_re'], gelb:['st_li','om_mi']};
+  renderWohlstenGrid();
+  document.getElementById('e-z-tiefe').value = '4';
+  document.getElementById('e-z-vorne').value = '2';
+  document.getElementById('e-z-hinten').value = '3';
+  document.getElementById('e-z-breite').value = '5';
+  document.getElementById('e-z-anker').value = '2';
+  saveEntwForm();
+  alert('Moritz-Profil wurde übernommen. Bitte kurz prüfen, ob Feld 8 (Position auf dem Platz) so passt — du kannst es direkt im Raster anpassen.');
+}
 function loadEntwForm(){
   const name = document.getElementById('e-player').value;
   const p = name ? (D.entwicklung||{})[name] : null;
-  const ids = ['e-geburtsdatum','e-datum','e-faehigkeit','e-haeufigkeit','e-hilft','e-hindert','e-plan','e-feld','e-tun','e-wohlsten','e-z-tiefe','e-z-vorne','e-z-hinten','e-z-breite','e-z-anker'];
+  const ids = ['e-geburtsdatum','e-datum','e-faehigkeit','e-haeufigkeit','e-hilft','e-hindert','e-plan','e-feld','e-tun','e-z-tiefe','e-z-vorne','e-z-hinten','e-z-breite','e-z-anker'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  if(!p) return;
+  currentWohlsten = {gruen:[], gelb:[]};
+  if(!p){ renderWohlstenGrid(); return; }
   if(p.geburtsdatum) document.getElementById('e-geburtsdatum').value = p.geburtsdatum;
   if(p.datum) document.getElementById('e-datum').value = p.datum;
   if(p.faehigkeit) document.getElementById('e-faehigkeit').value = p.faehigkeit;
@@ -844,7 +928,13 @@ function loadEntwForm(){
   if(p.plan) document.getElementById('e-plan').value = p.plan;
   if(p.feld) document.getElementById('e-feld').value = p.feld;
   if(p.tun) document.getElementById('e-tun').value = p.tun;
-  if(p.wohlsten) document.getElementById('e-wohlsten').value = p.wohlsten;
+  // Abwärtskompatibel: falls "wohlsten" noch als alter Freitext gespeichert ist, wird er
+  // nicht ins Raster übernommen (unterschiedliches Format) — bleibt aber beim Speichern
+  // erhalten, bis das Raster für diesen Spieler einmal aktiv genutzt wird.
+  if(p.wohlsten && typeof p.wohlsten==='object'){
+    currentWohlsten = {gruen: p.wohlsten.gruen||[], gelb: p.wohlsten.gelb||[]};
+  }
+  renderWohlstenGrid();
   if(p.zonen){
     if(p.zonen.tiefe) document.getElementById('e-z-tiefe').value = p.zonen.tiefe;
     if(p.zonen.vorne) document.getElementById('e-z-vorne').value = p.zonen.vorne;
@@ -867,7 +957,7 @@ function saveEntwForm(){
     plan: document.getElementById('e-plan').value,
     feld: document.getElementById('e-feld').value,
     tun: document.getElementById('e-tun').value,
-    wohlsten: document.getElementById('e-wohlsten').value,
+    wohlsten: {gruen: currentWohlsten.gruen.slice(), gelb: currentWohlsten.gelb.slice()},
     zonen: {
       tiefe: document.getElementById('e-z-tiefe').value,
       vorne: document.getElementById('e-z-vorne').value,
