@@ -115,6 +115,27 @@ tr:hover td{background:#f4f7fa}
 .sp-card li::before{content:'▸';position:absolute;left:0;top:0;color:#005078;font-weight:900}
 .sp-ex{display:block;color:#8a97a3;font-size:.76rem;font-style:italic;margin-top:2px}
 .sp-card.sp-wide{grid-column:1/-1}
+.prof-hero{background:linear-gradient(135deg,#005078,#003d5c);border-radius:12px;padding:20px 22px;margin-bottom:14px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 14px rgba(0,0,0,.15)}
+.prof-avatar{width:52px;height:52px;border-radius:50%;background:#fad200;color:#005078;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.prof-name{font-size:1.25rem;font-weight:900;letter-spacing:1.2px;color:#fad200;text-transform:uppercase}
+.prof-meta{font-size:.78rem;color:rgba(255,255,255,.75);margin-top:3px}
+.prof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px}
+.prof-card{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.prof-card h3{color:#005078;font-size:.78rem;font-weight:800;margin-bottom:11px;padding-bottom:8px;border-bottom:2px solid #fad200;display:flex;align-items:center;gap:9px;text-transform:uppercase;letter-spacing:.4px}
+.prof-num{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:50%;background:#005078;color:#fad200;font-weight:900;font-size:.7rem;flex-shrink:0}
+.prof-card p{font-size:.88rem;line-height:1.55;color:#2c3e50;white-space:pre-wrap;margin:0}
+.prof-card.prof-wide{grid-column:1/-1}
+.prof-dots{display:flex;gap:6px;align-items:center}
+.prof-dot{width:15px;height:15px;border-radius:50%;background:#e8eef4;flex-shrink:0}
+.prof-dot.on{background:#005078}
+.prof-dots span{margin-left:6px;font-weight:700;color:#005078;font-size:.85rem}
+.prof-zone-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.prof-zone-row:last-child{margin-bottom:0}
+.prof-zone-label{width:180px;flex-shrink:0;font-size:.82rem;font-weight:600;color:#003d5c}
+.prof-zone-bar{flex:1;background:#e8eef4;border-radius:6px;height:9px;overflow:hidden}
+.prof-zone-fill{height:100%;background:linear-gradient(90deg,#005078,#0080b8);border-radius:6px}
+.prof-zone-val{width:18px;text-align:right;font-weight:700;color:#005078;font-size:.82rem;flex-shrink:0}
+@media(max-width:580px){.prof-zone-label{width:120px;font-size:.74rem}}
 @media(max-width:580px){.htitle h1{font-size:1rem}#headerLogo{height:52px;width:52px;font-size:1.5rem}.nav-tab{padding:8px 9px;font-size:.7rem}.ov-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -852,34 +873,53 @@ function renderEntwicklung(){
       <p style="color:#aaa;font-style:italic;font-size:.85rem">Für diesen Spieler wurde noch kein Spielerprofil erfasst.</p></div>`;
     return;
   }
-  const zonenRows = Object.entries(ZONE_LABELS).map(([k,label])=>
-    `<tr><td>${label}</td><td style="font-weight:700;color:#005078">${p.zonen && p.zonen[k] ? p.zonen[k] : '–'}</td></tr>`
-  ).join('');
-  box.innerHTML = `<div class="card">
-    <div class="card-title">🧭 ${selPlayer}</div>
-    <div style="font-size:.78rem;color:#888;margin-bottom:10px">${p.geburtsdatum?('Geburtsdatum: '+fmtDate(p.geburtsdatum)+' · '):''}${p.datum?('Erfasst am: '+fmtDate(p.datum)):''}</div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">1) Fähigkeit, die den Unterschied macht</label><div>${p.faehigkeit||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">2) Einsatz im Spiel</label><div>${p.haeufigkeit?p.haeufigkeit+' / 5':'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">3) Was hilft mir, sie einzusetzen?</label><div>${p.hilft||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">4) Was hindert mich, sie einzusetzen?</label><div>${p.hindert||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">5) Plan: Wie werde ich darin besser?</label><div>${p.plan||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">6) Größtes Entwicklungsfeld</label><div>${p.feld||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">7) Was will ich tun, um besser zu werden?</label><div>${p.tun||'–'}</div></div>
-    <div class="fg"><label style="font-weight:700;color:#003d5c">8) Wo fühle ich mich am wohlsten?</label>${renderWohlstenDisplay(p.wohlsten)}</div>
+  box.innerHTML = `
+  <div class="prof-hero">
+    <div class="prof-avatar">🧭</div>
+    <div>
+      <div class="prof-name">${selPlayer}</div>
+      <div class="prof-meta">${p.geburtsdatum?('Geburtsdatum: '+fmtDate(p.geburtsdatum)+' · '):''}${p.datum?('Erfasst am: '+fmtDate(p.datum)):''}</div>
+    </div>
   </div>
-  <div class="card"><div class="card-title">9) Wo werde ich gerne angespielt?</div>
-    <table><thead><tr><th>Zone</th><th>Bewertung</th></tr></thead><tbody>${zonenRows}</tbody></table>
+  <div class="prof-grid">
+    <div class="prof-card"><h3><span class="prof-num">1</span>Fähigkeit, die den Unterschied macht</h3><p>${p.faehigkeit||'–'}</p></div>
+    <div class="prof-card"><h3><span class="prof-num">2</span>Einsatz im Spiel</h3>${renderHaeufigkeitDots(p.haeufigkeit)}</div>
+    <div class="prof-card"><h3><span class="prof-num">3</span>Was hilft mir, sie einzusetzen?</h3><p>${p.hilft||'–'}</p></div>
+    <div class="prof-card"><h3><span class="prof-num">4</span>Was hindert mich, sie einzusetzen?</h3><p>${p.hindert||'–'}</p></div>
+    <div class="prof-card"><h3><span class="prof-num">5</span>Plan: Wie werde ich darin besser?</h3><p>${p.plan||'–'}</p></div>
+    <div class="prof-card"><h3><span class="prof-num">6</span>Größtes Entwicklungsfeld</h3><p>${p.feld||'–'}</p></div>
+    <div class="prof-card prof-wide"><h3><span class="prof-num">7</span>Was will ich tun, um besser zu werden?</h3><p>${p.tun||'–'}</p></div>
+    <div class="prof-card prof-wide"><h3><span class="prof-num">8</span>Wo fühle ich mich am wohlsten?</h3>${renderWohlstenPitch(p.wohlsten)}</div>
+    <div class="prof-card prof-wide"><h3><span class="prof-num">9</span>Wo werde ich gerne angespielt?</h3>${renderZoneBars(p)}</div>
   </div>`;
 }
 function wohlstenLabel(id){ const z = WOHLSTEN_ZONES.find(z=>z.id===id); return z ? z.label : id; }
-function renderWohlstenDisplay(w){
-  if(!w) return '<div>–</div>';
-  if(typeof w === 'string') return `<div>${w}</div>`; // alter Freitext-Eintrag
-  const badges = [
-    ...(w.gruen||[]).map(id=>`<span class="wz-badge wz-b-gruen">🟢 ${wohlstenLabel(id)}</span>`),
-    ...(w.gelb||[]).map(id=>`<span class="wz-badge wz-b-gelb">🟡 ${wohlstenLabel(id)}</span>`)
-  ];
-  return badges.length ? `<div class="wz-badges">${badges.join('')}</div>` : '<div>–</div>';
+function renderHaeufigkeitDots(val){
+  val = parseInt(val)||0;
+  let dots = '';
+  for(let i=1;i<=5;i++) dots += `<div class="prof-dot${i<=val?' on':''}"></div>`;
+  return `<div class="prof-dots">${dots}<span>${val||'–'} / 5</span></div>`;
+}
+function renderWohlstenPitch(w){
+  if(!w) return '<p style="color:#aaa;font-style:italic;font-size:.85rem">Keine Angabe.</p>';
+  if(typeof w === 'string') return `<p>${w}</p>`; // alter Freitext-Eintrag
+  const gruen = w.gruen||[], gelb = w.gelb||[];
+  if(!gruen.length && !gelb.length) return '<p style="color:#aaa;font-style:italic;font-size:.85rem">Keine Angabe.</p>';
+  return `<div class="wz-grid" style="max-width:340px;margin:0 auto">${WOHLSTEN_ZONES.map(z=>{
+    const cls = gruen.includes(z.id) ? 'wz-gruen' : (gelb.includes(z.id) ? 'wz-gelb' : '');
+    return `<div class="wz-cell ${cls}">${z.label}</div>`;
+  }).join('')}</div>
+  <div class="wz-badges" style="justify-content:center;margin-top:10px">
+    <span class="wz-badge wz-b-gruen">🟢 am wohlsten</span>
+    <span class="wz-badge wz-b-gelb">🟡 auch gut</span>
+  </div>`;
+}
+function renderZoneBars(p){
+  return Object.entries(ZONE_LABELS).map(([k,label])=>{
+    const val = (p.zonen && p.zonen[k]) ? parseInt(p.zonen[k]) : 0;
+    const pct = val ? (val/5*100) : 0;
+    return `<div class="prof-zone-row"><div class="prof-zone-label">${label}</div><div class="prof-zone-bar"><div class="prof-zone-fill" style="width:${pct}%"></div></div><div class="prof-zone-val">${val||'–'}</div></div>`;
+  }).join('');
 }
 function fillEntwPlayerSelect(){
   const sel = document.getElementById('e-player');
