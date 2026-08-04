@@ -132,13 +132,11 @@ tr:hover td{background:#f4f7fa}
 
     window.fbStatus = 'connecting'; // 'online' | 'offline'
     window.fbSave = async function(data) {
-      console.log('%c[DIAGNOSE] Starte Firestore-Schreibvorgang, entries:', 'color:blue', (data.entries||[]).length);
       try {
         await ref.set({ payload: JSON.stringify(data) });
         window.fbStatus = 'online';
-        console.log('%c[DIAGNOSE] Firestore-Schreibvorgang ERFOLGREICH abgeschlossen', 'color:green;font-weight:bold');
       }
-      catch(e) { console.error("[DIAGNOSE] Firebase save error:", e); window.fbStatus = 'offline'; }
+      catch(e) { console.error("Firebase save error:", e); window.fbStatus = 'offline'; }
     };
     window.fbListen = function(callback) {
       ref.onSnapshot((snap) => {
@@ -146,12 +144,10 @@ tr:hover td{background:#f4f7fa}
         if (snap.exists) {
           try {
             const parsed = JSON.parse(snap.data().payload);
-            console.log('%c[DIAGNOSE] fbListen (Live-Update): entries=' + (parsed.entries||[]).length, 'color:teal;font-weight:bold');
             callback(parsed);
           }
           catch(e) { console.error("Firebase parse error:", e); }
         } else {
-          console.log('%c[DIAGNOSE] fbListen: Dokument existiert NICHT', 'color:red;font-weight:bold');
         }
       }, (err) => { console.error("Firebase listen error:", err); window.fbStatus = 'offline'; });
     };
@@ -161,10 +157,8 @@ tr:hover td{background:#f4f7fa}
         window.fbStatus = 'online';
         if (snap.exists) {
           const parsed = JSON.parse(snap.data().payload);
-          console.log('%c[DIAGNOSE] fbInit: Dokument existiert. entries=' + (parsed.entries||[]).length, 'color:orange;font-weight:bold');
           callback(parsed);
         } else {
-          console.log('%c[DIAGNOSE] fbInit: Dokument existiert NICHT (snap.exists=false)', 'color:red;font-weight:bold');
           callback(defaultData);
         }
       } catch(e) { console.error("Firebase init error:", e); window.fbStatus = 'offline'; callback(defaultData); }
@@ -178,7 +172,6 @@ tr:hover td{background:#f4f7fa}
     window.fbListen = function(){};
   }
   window.firebaseReady = true;
-  console.log('%c[DIAGNOSE] index.html Version FIXV3 geladen um ' + new Date().toLocaleTimeString(), 'color:blue;font-weight:bold');
   window.dispatchEvent(new Event('firebaseReady'));
 })();
 </script>
@@ -1000,7 +993,12 @@ function ensureWeek(mondayISO){
     w = {monday: mondayISO, slots: makeWeekSlots()};
     D.videoweeks.push(w);
     D.videoweeks.sort((a,b)=>a.monday.localeCompare(b.monday));
-    save();
+    // WICHTIG: HIER NICHT speichern! Diese Funktion läuft bei jedem Seitenaufbau
+    // (auch schon mit den leeren Platzhalter-Standarddaten, bevor die echten
+    // Daten aus Firestore geladen sind) und hat dadurch bisher bei jedem
+    // Laden der Seite automatisch die komplette Datenbank überschrieben.
+    // Die neue Woche existiert jetzt nur im Speicher und wird ganz normal
+    // gespeichert, sobald tatsächlich ein Slot gebucht wird (siehe bookSlot()).
   }
   return w;
 }
@@ -1240,11 +1238,9 @@ function saveEntry(){
     const el = document.getElementById('pt_'+i);
     if(el && el.value!==''){ points[p] = parseFloat(el.value)||0; }
   });
-  console.log('%c[DIAGNOSE] saveEntry() aufgerufen. date=' + date + ' cat=' + cat + ' points=' + JSON.stringify(points) + ' entries VORHER=' + D.entries.length, 'color:purple;font-weight:bold');
   const idx = D.entries.findIndex(e=>e.date===date && e.category===cat);
   if(idx>=0) D.entries[idx].points = points;
   else D.entries.push({ id: 'e_'+Date.now()+'_'+Math.floor(Math.random()*1000), date, category:cat, points });
-  console.log('%c[DIAGNOSE] entries NACHHER=' + D.entries.length, 'color:purple;font-weight:bold');
   save();
   renderAll();
   adminRefresh();
