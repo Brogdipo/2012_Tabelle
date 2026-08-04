@@ -153,8 +153,12 @@ tr:hover td{background:#f4f7fa}
       try {
         const snap = await ref.get();
         window.fbStatus = 'online';
+        // WICHTIG: Beim Laden NIE automatisch in die Datenbank schreiben!
+        // Vorher wurde hier bei einem fehlenden/verzögerten Dokument automatisch
+        // mit leeren Standarddaten überschrieben — das hat echte gespeicherte
+        // Ergebnisse gelöscht. Jetzt wird nur noch gelesen, nie automatisch geschrieben.
         if (snap.exists) callback(JSON.parse(snap.data().payload));
-        else { await window.fbSave(defaultData); callback(defaultData); }
+        else callback(defaultData);
       } catch(e) { console.error("Firebase init error:", e); window.fbStatus = 'offline'; callback(defaultData); }
       window.fbListen(callback);
     };
