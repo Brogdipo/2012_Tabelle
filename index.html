@@ -153,12 +153,8 @@ tr:hover td{background:#f4f7fa}
       try {
         const snap = await ref.get();
         window.fbStatus = 'online';
-        // WICHTIG: Beim Init NIE automatisch in Firestore schreiben, auch wenn das Dokument
-        // (vermeintlich) fehlt – sonst können echte Daten durch einen leeren Stand überschrieben
-        // werden (z.B. bei kurzen Netzwerk-Hängern). Es wird erst geschrieben, wenn aktiv etwas
-        // eingetragen wird (siehe save()).
         if (snap.exists) callback(JSON.parse(snap.data().payload));
-        else { console.warn('[DIAGNOSE] Kein Firestore-Dokument gefunden – zeige Default-Daten, schreibe NICHT automatisch'); callback(defaultData); }
+        else { await window.fbSave(defaultData); callback(defaultData); }
       } catch(e) { console.error("Firebase init error:", e); window.fbStatus = 'offline'; callback(defaultData); }
       window.fbListen(callback);
     };
@@ -170,7 +166,7 @@ tr:hover td{background:#f4f7fa}
     window.fbListen = function(){};
   }
   window.firebaseReady = true;
-  console.log('%c[DIAGNOSE] index.html Version FIXV4 (kein Auto-Write beim Init) geladen um ' + new Date().toLocaleTimeString(), 'color:blue;font-weight:bold');
+  console.log('%c[DIAGNOSE] index.html Version FIXV3 geladen um ' + new Date().toLocaleTimeString(), 'color:blue;font-weight:bold');
   window.dispatchEvent(new Event('firebaseReady'));
 })();
 </script>
@@ -1232,9 +1228,11 @@ function saveEntry(){
     const el = document.getElementById('pt_'+i);
     if(el && el.value!==''){ points[p] = parseFloat(el.value)||0; }
   });
+  console.log('%c[DIAGNOSE] saveEntry() aufgerufen. date=' + date + ' cat=' + cat + ' points=' + JSON.stringify(points) + ' entries VORHER=' + D.entries.length, 'color:purple;font-weight:bold');
   const idx = D.entries.findIndex(e=>e.date===date && e.category===cat);
   if(idx>=0) D.entries[idx].points = points;
   else D.entries.push({ id: 'e_'+Date.now()+'_'+Math.floor(Math.random()*1000), date, category:cat, points });
+  console.log('%c[DIAGNOSE] entries NACHHER=' + D.entries.length, 'color:purple;font-weight:bold');
   save();
   renderAll();
   adminRefresh();
