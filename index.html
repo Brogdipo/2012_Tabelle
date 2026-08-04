@@ -123,8 +123,17 @@ tr:hover td{background:#f4f7fa}
 .prof-card{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 2px 14px rgba(0,0,0,.12)}
 .prof-card h3{color:#005078;font-size:.78rem;font-weight:800;margin-bottom:11px;padding-bottom:8px;border-bottom:2px solid #fad200;display:flex;align-items:center;gap:9px;text-transform:uppercase;letter-spacing:.4px}
 .prof-num{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:50%;background:#005078;color:#fad200;font-weight:900;font-size:.7rem;flex-shrink:0}
-.prof-card p{font-size:.88rem;line-height:1.55;color:#2c3e50;white-space:pre-wrap;margin:0}
+.prof-card p{font-size:.95rem;line-height:1.55;color:#2c3e50;white-space:pre-wrap;margin:0}
 .prof-card.prof-wide{grid-column:1/-1}
+.prof-bullets{margin:0;padding-left:19px;display:flex;flex-direction:column;gap:7px}
+.prof-bullets li{font-size:.95rem;line-height:1.5;color:#2c3e50}
+.pitch-wrap{position:relative;max-width:280px;margin:0 auto;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:#2e8b3d;border:3px solid #fff;box-shadow:0 0 0 1px #1f6b2c}
+.pitch-svg{position:absolute;inset:0;width:100%;height:100%}
+.pitch-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:4px;height:100%;padding:4px;box-sizing:border-box}
+.pitch-cell{border:1px solid rgba(255,255,255,.32);border-radius:4px;transition:background .15s}
+.pitch-cell:hover{background:rgba(255,255,255,.18)}
+.pitch-cell.pc-gruen{background:#27ae60;border-color:#1e8449}
+.pitch-cell.pc-gelb{background:#fad200;border-color:#fad200}
 .prof-dots{display:flex;gap:6px;align-items:center}
 .prof-dot{width:15px;height:15px;border-radius:50%;background:#e8eef4;flex-shrink:0}
 .prof-dot.on{background:#005078}
@@ -882,18 +891,28 @@ function renderEntwicklung(){
     </div>
   </div>
   <div class="prof-grid">
-    <div class="prof-card"><h3><span class="prof-num">1</span>Fähigkeit, die den Unterschied macht</h3><p>${p.faehigkeit||'–'}</p></div>
+    <div class="prof-card"><h3><span class="prof-num">1</span>Fähigkeit, die den Unterschied macht</h3>${toBullets(p.faehigkeit)}</div>
     <div class="prof-card"><h3><span class="prof-num">2</span>Einsatz im Spiel</h3>${renderHaeufigkeitDots(p.haeufigkeit)}</div>
-    <div class="prof-card"><h3><span class="prof-num">3</span>Was hilft mir, sie einzusetzen?</h3><p>${p.hilft||'–'}</p></div>
-    <div class="prof-card"><h3><span class="prof-num">4</span>Was hindert mich, sie einzusetzen?</h3><p>${p.hindert||'–'}</p></div>
-    <div class="prof-card"><h3><span class="prof-num">5</span>Plan: Wie werde ich darin besser?</h3><p>${p.plan||'–'}</p></div>
-    <div class="prof-card"><h3><span class="prof-num">6</span>Größtes Entwicklungsfeld</h3><p>${p.feld||'–'}</p></div>
-    <div class="prof-card prof-wide"><h3><span class="prof-num">7</span>Was will ich tun, um besser zu werden?</h3><p>${p.tun||'–'}</p></div>
+    <div class="prof-card"><h3><span class="prof-num">3</span>Was hilft mir, sie einzusetzen?</h3>${toBullets(p.hilft)}</div>
+    <div class="prof-card"><h3><span class="prof-num">4</span>Was hindert mich, sie einzusetzen?</h3>${toBullets(p.hindert)}</div>
+    <div class="prof-card"><h3><span class="prof-num">5</span>Plan: Wie werde ich darin besser?</h3>${toBullets(p.plan)}</div>
+    <div class="prof-card"><h3><span class="prof-num">6</span>Größtes Entwicklungsfeld</h3>${toBullets(p.feld)}</div>
+    <div class="prof-card prof-wide"><h3><span class="prof-num">7</span>Was will ich tun, um besser zu werden?</h3>${toBullets(p.tun)}</div>
     <div class="prof-card prof-wide"><h3><span class="prof-num">8</span>Wo fühle ich mich am wohlsten?</h3>${renderWohlstenPitch(p.wohlsten)}</div>
     <div class="prof-card prof-wide"><h3><span class="prof-num">9</span>Wo werde ich gerne angespielt?</h3>${renderZoneBars(p)}</div>
   </div>`;
 }
 function wohlstenLabel(id){ const z = WOHLSTEN_ZONES.find(z=>z.id===id); return z ? z.label : id; }
+// Formatiert Freitext als Stichpunkte: erst nach Zeilenumbrüchen splitten, sonst nach Satzenden.
+function toBullets(text){
+  if(!text) return '<p style="color:#aaa;font-style:italic">–</p>';
+  let parts = text.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  if(parts.length<=1){
+    parts = text.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9])/).map(s=>s.trim()).filter(Boolean);
+  }
+  if(parts.length<=1) return `<p>${text}</p>`;
+  return `<ul class="prof-bullets">${parts.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+}
 function renderHaeufigkeitDots(val){
   val = parseInt(val)||0;
   let dots = '';
@@ -905,10 +924,24 @@ function renderWohlstenPitch(w){
   if(typeof w === 'string') return `<p>${w}</p>`; // alter Freitext-Eintrag
   const gruen = w.gruen||[], gelb = w.gelb||[];
   if(!gruen.length && !gelb.length) return '<p style="color:#aaa;font-style:italic;font-size:.85rem">Keine Angabe.</p>';
-  return `<div class="wz-grid" style="max-width:340px;margin:0 auto">${WOHLSTEN_ZONES.map(z=>{
-    const cls = gruen.includes(z.id) ? 'wz-gruen' : (gelb.includes(z.id) ? 'wz-gelb' : '');
-    return `<div class="wz-cell ${cls}">${z.label}</div>`;
-  }).join('')}</div>
+  const cellsHtml = WOHLSTEN_ZONES.map(z=>{
+    const cls = gruen.includes(z.id) ? 'pc-gruen' : (gelb.includes(z.id) ? 'pc-gelb' : '');
+    return `<div class="pitch-cell ${cls}" title="${z.label}"></div>`;
+  }).join('');
+  return `
+  <div class="pitch-wrap">
+    <svg class="pitch-svg" viewBox="0 0 300 400" preserveAspectRatio="none">
+      <rect x="4" y="4" width="292" height="392" fill="none" stroke="#fff" stroke-width="2" opacity=".55"/>
+      <line x1="4" y1="200" x2="296" y2="200" stroke="#fff" stroke-width="2" opacity=".55"/>
+      <circle cx="150" cy="200" r="42" fill="none" stroke="#fff" stroke-width="2" opacity=".55"/>
+      <circle cx="150" cy="200" r="3" fill="#fff" opacity=".55"/>
+      <rect x="75" y="4" width="150" height="72" fill="none" stroke="#fff" stroke-width="2" opacity=".55"/>
+      <rect x="115" y="4" width="70" height="28" fill="none" stroke="#fff" stroke-width="2" opacity=".55"/>
+      <rect x="75" y="324" width="150" height="72" fill="none" stroke="#fff" stroke-width="2" opacity=".55"/>
+      <rect x="115" y="368" width="70" height="28" fill="none" stroke="#fff" stroke-width="2" opacity=".55"/>
+    </svg>
+    <div class="pitch-grid">${cellsHtml}</div>
+  </div>
   <div class="wz-badges" style="justify-content:center;margin-top:10px">
     <span class="wz-badge wz-b-gruen">🟢 am wohlsten</span>
     <span class="wz-badge wz-b-gelb">🟡 auch gut</span>
