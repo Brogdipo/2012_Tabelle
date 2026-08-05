@@ -146,6 +146,9 @@ tr:hover td{background:#f4f7fa}
 .tb-name{font-size:.68rem;font-weight:800;color:#003d5c;line-height:1.15;word-break:break-word}
 .tb-strength{font-size:.55rem;color:#607282;line-height:1.2;margin-top:2px}
 .tb-arrows{display:flex;justify-content:center;gap:4px;margin-top:3px;font-size:.78rem;line-height:1}
+.tb-tasche{position:relative;display:inline-block;width:.9em;height:.9em}
+.tb-raute{position:absolute;inset:0;color:#e8a3a3;font-size:.95em}
+.tb-taschepfeil{position:absolute;top:-.32em;right:-.4em;color:#c0392b;font-size:.55em;font-weight:800}
 .prof-dots{display:flex;gap:6px;align-items:center}
 .prof-dot{width:15px;height:15px;border-radius:50%;background:#e8eef4;flex-shrink:0}
 .prof-dot.on{background:#005078}
@@ -471,7 +474,7 @@ tr:hover td{background:#f4f7fa}
       </div>
       <div class="fg"><button class="btn br" onclick="tbReset()">↺ Zurücksetzen</button></div>
     </div>
-    <div style="font-size:.75rem;color:#aaa;margin-top:6px">Pro Position einen Spieler wählen. Die Pfeile zeigen Zonen aus Frage 9 des Spielerprofils, in denen der Spieler 4 oder mehr angegeben hat: ⬆ Tiefe · ⬇ Anker · ⬅➡ Breite (nach außen) · ⬅➡ Tasche (Richtung Mitte).</div>
+    <div style="font-size:.75rem;color:#aaa;margin-top:6px">Pro Position einen Spieler wählen. Die Symbole zeigen Zonen aus Frage 9 des Spielerprofils, in denen der Spieler 4 oder mehr angegeben hat: 🚀 Tiefe · ⚓ Anker · ⬅➡ Breite (nach außen) · ◆▲ Tasche vorne (Richtung gegnerisches Tor) · ◆▼ Tasche hinten (Richtung eigenes Tor).</div>
   </div>
   <div class="tb-scroll"><div class="tb-pitch-wrap" id="tb-pitch"></div></div>
 </div>
@@ -1107,11 +1110,12 @@ const FORMATIONS = {
     {id:'lom',  label:'LOM', x:16, y:36}, {id:'zom', label:'ZOM', x:50, y:40}, {id:'rom', label:'ROM', x:84, y:36},
     {id:'st',   label:'ST', x:50, y:13}
   ]},
-  '3-4-3': { slots: [
+  '3-4-2-1': { slots: [
     {id:'gk',  label:'TW', x:50, y:92},
     {id:'iv1', label:'IV', x:27, y:79}, {id:'iv2', label:'IV', x:50, y:83}, {id:'iv3', label:'IV', x:73, y:79},
-    {id:'lm',  label:'LM', x:10, y:51}, {id:'zm1', label:'ZM', x:37, y:53}, {id:'zm2', label:'ZM', x:63, y:53}, {id:'rm', label:'RM', x:90, y:51},
-    {id:'la',  label:'LA', x:16, y:17}, {id:'st', label:'ST', x:50, y:11}, {id:'ra', label:'RA', x:84, y:17}
+    {id:'lm',  label:'LM', x:10, y:53}, {id:'zm1', label:'ZM', x:37, y:55}, {id:'zm2', label:'ZM', x:63, y:55}, {id:'rm', label:'RM', x:90, y:53},
+    {id:'zom1', label:'ZOM', x:37, y:30}, {id:'zom2', label:'ZOM', x:63, y:30},
+    {id:'st', label:'ST', x:50, y:13}
   ]}
 };
 let tbFormation = '4-3-3';
@@ -1192,13 +1196,21 @@ function tbStrengthText(text){
 function tbArrows(zonen, x){
   if(!zonen) return '';
   const z = k => parseInt(zonen[k])||0;
-  const arrows = [];
-  if(z('tiefe')>=4) arrows.push({icon:'⬆', title:'In der Tiefe (≥4)'});
-  if(z('anker')>=4) arrows.push({icon:'⬇', title:'Als Anker (≥4)'});
-  if(z('breite')>=4) arrows.push({icon: x<45?'⬅':(x>55?'➡':'↔'), title:'In der Breite (≥4) – nach außen'});
-  if(z('vorne')>=4 || z('hinten')>=4) arrows.push({icon: x<45?'➡':(x>55?'⬅':'•'), title:'In der Tasche (≥4) – Richtung Mitte'});
-  if(!arrows.length) return '';
-  return `<div class="tb-arrows">${arrows.map(a=>`<span title="${a.title}">${a.icon}</span>`).join('')}</div>`;
+  const items = [];
+  if(z('tiefe')>=4) items.push(`<span title="In der Tiefe (≥4)">🚀</span>`);
+  if(z('anker')>=4) items.push(`<span title="Als Anker (≥4)">⚓</span>`);
+  if(z('breite')>=4){
+    const icon = x<45 ? '⬅' : (x>55 ? '➡' : '↔');
+    items.push(`<span title="In der Breite (≥4) – nach außen">${icon}</span>`);
+  }
+  if(z('vorne')>=4){
+    items.push(`<span class="tb-tasche" title="Tasche – Blick nach vorne (≥4) – Richtung gegnerisches Tor"><span class="tb-raute">◆</span><span class="tb-taschepfeil">▲</span></span>`);
+  }
+  if(z('hinten')>=4){
+    items.push(`<span class="tb-tasche" title="Tasche – Blick nach hinten (≥4) – Richtung eigenes Tor"><span class="tb-raute">◆</span><span class="tb-taschepfeil">▼</span></span>`);
+  }
+  if(!items.length) return '';
+  return `<div class="tb-arrows">${items.join('')}</div>`;
 }
 
 function renderZoneBars(p){
