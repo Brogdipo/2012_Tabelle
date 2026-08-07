@@ -150,7 +150,7 @@ tr:hover td{background:#f4f7fa}
 .tb-tasche{position:relative;display:inline-block;width:.9em;height:.9em}
 .tb-raute{position:absolute;inset:0;color:#e8a3a3;font-size:.95em}
 .tb-taschepfeil{position:absolute;top:-.32em;right:-.4em;color:#c0392b;font-size:.55em;font-weight:800}
-.tb-wa{position:absolute;font-size:.72rem;font-weight:900;opacity:.65;pointer-events:none}
+.tb-wa{position:absolute;font-size:.78rem;font-weight:900;pointer-events:none;-webkit-text-stroke:2px #fff;paint-order:stroke fill;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 2px #fff}
 .tb-wa-gruen{color:#27ae60}
 .tb-wa-gelb{color:#c99a00}
 .tb-profile-modal{display:none;position:fixed;inset:0;background:rgba(0,20,35,.55);z-index:500;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
@@ -1267,12 +1267,17 @@ function tbWohlstenArrows(w, sx, sy){
   if(!w || typeof w !== 'object') return '';
   const pts = [...(w.gruen||[]).map(id=>({id, cls:'tb-wa-gruen'})), ...(w.gelb||[]).map(id=>({id, cls:'tb-wa-gelb'}))];
   if(!pts.length) return '';
+  // Wohlsten-Raster: horizontal 30 Einheiten zwischen Spalten, vertikal 24 zwischen Zeilen
+  // -> direkter Nachbar (auch diagonal) liegt bei max. ~38-39. Alles weiter weg wird
+  // nicht mehr angezeigt, damit kein Pfeil quer übers ganze Feld gezogen wird.
+  const MIN_DIST = 6, MAX_DIST = 40;
   let html = '';
   pts.forEach(pt=>{
     const t = WOHLSTEN_XY[pt.id];
     if(!t) return;
     const dx = t[0]-sx, dy = t[1]-sy;
-    if(Math.hypot(dx,dy) < 6) return; // Position entspricht schon der Komfortzone — kein Pfeil nötig
+    const dist = Math.hypot(dx,dy);
+    if(dist < MIN_DIST || dist > MAX_DIST) return; // schon dort bzw. zu weit weg
     const dir = tbCompassDir(dx,dy);
     html += `<span class="tb-wa ${pt.cls}" style="${dir.style}" title="${wohlstenLabel(pt.id)} (${pt.cls==='tb-wa-gruen'?'am wohlsten':'auch gut'})">${dir.icon}</span>`;
   });
