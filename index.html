@@ -140,15 +140,22 @@ tr:hover td{background:#f4f7fa}
 .tb-slot{position:absolute;transform:translate(-50%,-50%);z-index:2;text-align:center}
 .tb-dot{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.22);border:2px dashed rgba(255,255,255,.75);color:#fff;font-size:.58rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 3px}
 .tb-slot select{width:76px;font-size:.6rem;padding:2px 1px;border-radius:5px;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.94);color:#003d5c;text-align:center;display:block;margin:0 auto}
-.tb-card{background:#fff;border-radius:9px;box-shadow:0 3px 10px rgba(0,0,0,.32);padding:5px 5px 6px;width:76px;text-align:center;position:relative}
-.tb-clear{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;background:#e74c3c;color:#fff;font-size:.6rem;line-height:17px;text-align:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.35)}
-.tb-pos{font-size:.54rem;font-weight:800;color:#fff;background:#005078;border-radius:4px;padding:1px 5px;display:inline-block;margin-bottom:2px}
-.tb-name{font-size:.68rem;font-weight:800;color:#003d5c;line-height:1.15;word-break:break-word}
-.tb-strength{font-size:.55rem;color:#607282;line-height:1.2;margin-top:2px}
-.tb-arrows{display:flex;justify-content:center;gap:4px;margin-top:3px;font-size:.78rem;line-height:1}
+.tb-card{background:#fff;border-radius:9px;box-shadow:0 3px 10px rgba(0,0,0,.32);padding:5px 5px 6px;width:76px;height:98px;box-sizing:border-box;text-align:center;position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;transition:box-shadow .15s,transform .15s}
+.tb-card:hover{box-shadow:0 5px 16px rgba(0,0,0,.4);transform:translateY(-1px)}
+.tb-clear{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;background:#e74c3c;color:#fff;font-size:.6rem;line-height:17px;text-align:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.35);z-index:1}
+.tb-pos{font-size:.54rem;font-weight:800;color:#fff;background:#005078;border-radius:4px;padding:1px 5px;display:inline-block;margin-bottom:2px;flex-shrink:0}
+.tb-name{font-size:.68rem;font-weight:800;color:#003d5c;line-height:1.15;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tb-strength{font-size:.53rem;color:#607282;line-height:1.2;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tb-arrows{display:flex;justify-content:center;gap:4px;margin-top:auto;padding-top:3px;font-size:.78rem;line-height:1;flex-shrink:0}
 .tb-tasche{position:relative;display:inline-block;width:.9em;height:.9em}
 .tb-raute{position:absolute;inset:0;color:#e8a3a3;font-size:.95em}
 .tb-taschepfeil{position:absolute;top:-.32em;right:-.4em;color:#c0392b;font-size:.55em;font-weight:800}
+.tb-wa{position:absolute;font-size:.72rem;font-weight:900;opacity:.65;pointer-events:none}
+.tb-wa-gruen{color:#27ae60}
+.tb-wa-gelb{color:#c99a00}
+.tb-profile-modal{display:none;position:fixed;inset:0;background:rgba(0,20,35,.55);z-index:500;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
+.tb-profile-modal-inner{background:#f4f7f9;border-radius:12px;max-width:760px;width:100%;padding:18px 18px 22px;position:relative;margin-bottom:24px}
+.tb-profile-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;background:#005078;color:#fff;border:none;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .prof-dots{display:flex;gap:6px;align-items:center}
 .prof-dot{width:15px;height:15px;border-radius:50%;background:#e8eef4;flex-shrink:0}
 .prof-dot.on{background:#005078}
@@ -474,9 +481,16 @@ tr:hover td{background:#f4f7fa}
       </div>
       <div class="fg"><button class="btn br" onclick="tbReset()">↺ Zurücksetzen</button></div>
     </div>
-    <div style="font-size:.75rem;color:#aaa;margin-top:6px">Pro Position einen Spieler wählen. Die Symbole zeigen Zonen aus Frage 9 des Spielerprofils, in denen der Spieler 4 oder mehr angegeben hat: 🚀 Tiefe · ⚓ Anker · ⬅➡ Breite (nach außen) · ◆▲ Tasche vorne (Richtung gegnerisches Tor) · ◆▼ Tasche hinten (Richtung eigenes Tor).</div>
+    <div style="font-size:.75rem;color:#aaa;margin-top:6px">Pro Position einen Spieler wählen. Die Symbole zeigen Zonen aus Frage 9 des Spielerprofils, in denen der Spieler 4 oder mehr angegeben hat: 🚀 Tiefe · ⚓ Anker · ⬅➡ Breite (nach außen) · ◆▲ Tasche vorne (Richtung gegnerisches Tor) · ◆▼ Tasche hinten (Richtung eigenes Tor). Dezente grüne/gelbe Pfeile am Kartenrand zeigen Richtung Frage 8 ("wo fühle ich mich am wohlsten"). Karte antippen für alle Profil-Details.</div>
   </div>
   <div class="tb-scroll"><div class="tb-pitch-wrap" id="tb-pitch"></div></div>
+</div>
+
+<div class="tb-profile-modal" id="tb-profile-modal" onclick="if(event.target===this) tbCloseProfile()">
+  <div class="tb-profile-modal-inner">
+    <button class="tb-profile-close" onclick="tbCloseProfile()">✕</button>
+    <div id="tb-profile-modal-body"></div>
+  </div>
 </div>
 
 </div>
@@ -551,6 +565,14 @@ tr:hover td{background:#f4f7fa}
           <div class="fg"><label>Als Anker</label><select id="e-z-anker"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
         </div>
         <div style="margin-top:6px"><button class="btn bg" onclick="saveEntwForm()">💾 Profil speichern</button> <button class="btn bb" onclick="importMoritzProfil()">📥 Moritz-Profil aus PDF importieren</button> <span id="e-savemsg" style="font-size:.78rem;color:#27ae60;margin-left:8px"></span></div>
+      </div>
+
+      <div class="asec">
+        <h3>Trainings- &amp; Spielziele — Fortschritt</h3>
+        <div class="fg"><label>Spieler</label><select id="tz-player" onchange="loadZieleForm()"></select></div>
+        <div style="font-size:.75rem;color:#888;margin:6px 0 10px">Bis zu 3 individuelle Ziele je Spieler. „Aktualisieren" trägt den heutigen Stand in den Verlauf ein (max. ein Eintrag pro Tag je Ziel).</div>
+        <div id="tz-goals"></div>
+        <span id="tz-savemsg" style="font-size:.78rem;color:#27ae60"></span>
       </div>
 
       <div class="asec">
@@ -1010,17 +1032,21 @@ function renderEntwicklung(){
   const box = document.getElementById('entw-content');
   if(!box) return;
   if(!selPlayer){ box.innerHTML=''; return; }
-  const p = (D.entwicklung||{})[selPlayer];
+  box.innerHTML = buildProfileHtml(selPlayer);
+}
+// Baut die komplette Spielerprofil-Ansicht (Hero + Karten 1-9 + Ziele) als HTML-String.
+// Wird sowohl von der Entwicklung-Seite als auch vom Team-Builder-Popup verwendet.
+function buildProfileHtml(name){
+  const p = (D.entwicklung||{})[name];
   if(!p){
-    box.innerHTML = `<div class="card"><div class="card-title">🧭 ${selPlayer}</div>
+    return `<div class="card"><div class="card-title">🧭 ${name}</div>
       <p style="color:#aaa;font-style:italic;font-size:.85rem">Für diesen Spieler wurde noch kein Spielerprofil erfasst.</p></div>`;
-    return;
   }
-  box.innerHTML = `
+  return `
   <div class="prof-hero">
     <div class="prof-avatar">🧭</div>
     <div>
-      <div class="prof-name">${selPlayer}</div>
+      <div class="prof-name">${name}</div>
       <div class="prof-meta">${p.geburtsdatum?('Geburtsdatum: '+fmtDate(p.geburtsdatum)+' · '):''}${p.datum?('Erfasst am: '+fmtDate(p.datum)):''}</div>
     </div>
   </div>
@@ -1034,7 +1060,23 @@ function renderEntwicklung(){
     <div class="prof-card prof-wide"><h3><span class="prof-num">7</span>Was will ich tun, um besser zu werden?</h3>${toBullets(p.tun)}</div>
     <div class="prof-card prof-wide"><h3><span class="prof-num">8</span>Wo fühle ich mich am wohlsten?</h3>${renderWohlstenPitch(p.wohlsten)}</div>
     <div class="prof-card prof-wide"><h3><span class="prof-num">9</span>Wo werde ich gerne angespielt?</h3>${renderZoneBars(p)}</div>
+    <div class="prof-card prof-wide"><h3><span class="prof-num">10</span>Trainings- &amp; Spielziele</h3>${renderZiele(p.ziele)}</div>
   </div>`;
+}
+function renderZiele(ziele){
+  if(!ziele || !ziele.length) return '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Ziele festgelegt.</p>';
+  return ziele.map(g=>{
+    const prog = Math.max(0, Math.min(100, parseInt(g.progress)||0));
+    const last = g.updates && g.updates.length ? g.updates[g.updates.length-1] : null;
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+        <span style="font-weight:700;color:#003d5c;font-size:.88rem">${g.text}</span>
+        <span style="font-weight:800;color:#005078;font-size:.85rem;flex-shrink:0">${prog}%</span>
+      </div>
+      <div class="prof-zone-bar" style="margin-top:5px"><div class="prof-zone-fill" style="width:${prog}%"></div></div>
+      ${last ? `<div style="font-size:.68rem;color:#aaa;margin-top:3px">Zuletzt aktualisiert: ${fmtDate(last.date)}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 function wohlstenLabel(id){ const z = WOHLSTEN_ZONES.find(z=>z.id===id); return z ? z.label : id; }
 // Formatiert Freitext als Stichpunkte: erst nach Zeilenumbrüchen splitten, sonst nach Satzenden.
@@ -1178,14 +1220,74 @@ function tbRenderSlot(s, usedNames){
   }
   const p = (D.entwicklung||{})[name] || {};
   return `<div class="tb-slot" style="${style}">
-    <div class="tb-card">
-      <div class="tb-clear" onclick="tbClear('${s.id}')" title="Entfernen">✕</div>
+    <div class="tb-card" onclick="tbOpenProfile('${name}')" title="Für Profil-Details antippen">
+      <div class="tb-clear" onclick="event.stopPropagation(); tbClear('${s.id}')" title="Entfernen">✕</div>
       <div class="tb-pos">${s.label}</div>
       <div class="tb-name">${name}</div>
       <div class="tb-strength">${tbStrengthText(p.faehigkeit)}</div>
       ${tbArrows(p.zonen, s.x)}
+      ${tbWohlstenArrows(p.wohlsten, s.x, s.y)}
     </div>
   </div>`;
+}
+// Bestimmt aus einem Richtungsvektor (dx,dy in Bildschirm-Koordinaten, y wächst nach
+// unten) die nächstliegende der 8 Himmelsrichtungen — für ruhige, nicht überlappende
+// Pfeil-Badges rund um die Karte statt beliebiger Rotationswinkel.
+const TB_COMPASS = [
+  {a:'N',  dx:0,  dy:-1, icon:'↑', style:'top:-13px;left:50%;transform:translateX(-50%)'},
+  {a:'NE', dx:1,  dy:-1, icon:'↗', style:'top:-11px;right:-11px'},
+  {a:'E',  dx:1,  dy:0,  icon:'→', style:'top:50%;right:-13px;transform:translateY(-50%)'},
+  {a:'SE', dx:1,  dy:1,  icon:'↘', style:'bottom:-11px;right:-11px'},
+  {a:'S',  dx:0,  dy:1,  icon:'↓', style:'bottom:-13px;left:50%;transform:translateX(-50%)'},
+  {a:'SW', dx:-1, dy:1,  icon:'↙', style:'bottom:-11px;left:-11px'},
+  {a:'W',  dx:-1, dy:0,  icon:'←', style:'top:50%;left:-13px;transform:translateY(-50%)'},
+  {a:'NW', dx:-1, dy:-1, icon:'↖', style:'top:-11px;left:-11px'}
+];
+function tbCompassDir(dx, dy){
+  const len = Math.hypot(dx,dy) || 1;
+  let best = TB_COMPASS[0], bestDot = -Infinity;
+  TB_COMPASS.forEach(d=>{
+    const dl = Math.hypot(d.dx,d.dy);
+    const dot = (dx/len)*(d.dx/dl) + (dy/len)*(d.dy/dl);
+    if(dot > bestDot){ bestDot = dot; best = d; }
+  });
+  return best;
+}
+// Position jeder Wohlsten-Zone auf derselben Prozent-Skala wie die Formation-Slots
+// (oben = Angriff), damit Richtung direkt vergleichbar ist.
+const WOHLSTEN_XY = {
+  st_li:[20,14], st_mi:[50,14], st_re:[80,14],
+  om_li:[20,38], om_mi:[50,38], om_re:[80,38],
+  dm_li:[20,62], dm_mi:[50,62], dm_re:[80,62],
+  def_li:[20,86], def_mi:[50,86], def_re:[80,86]
+};
+// Dezente grüne/gelbe Pfeile rund um die Karte, die Richtung Frage 8 ("wo fühle ich
+// mich am wohlsten") zeigen — relativ zur aktuell zugewiesenen Position auf dem Feld.
+function tbWohlstenArrows(w, sx, sy){
+  if(!w || typeof w !== 'object') return '';
+  const pts = [...(w.gruen||[]).map(id=>({id, cls:'tb-wa-gruen'})), ...(w.gelb||[]).map(id=>({id, cls:'tb-wa-gelb'}))];
+  if(!pts.length) return '';
+  let html = '';
+  pts.forEach(pt=>{
+    const t = WOHLSTEN_XY[pt.id];
+    if(!t) return;
+    const dx = t[0]-sx, dy = t[1]-sy;
+    if(Math.hypot(dx,dy) < 6) return; // Position entspricht schon der Komfortzone — kein Pfeil nötig
+    const dir = tbCompassDir(dx,dy);
+    html += `<span class="tb-wa ${pt.cls}" style="${dir.style}" title="${wohlstenLabel(pt.id)} (${pt.cls==='tb-wa-gruen'?'am wohlsten':'auch gut'})">${dir.icon}</span>`;
+  });
+  return html;
+}
+function tbOpenProfile(name){
+  const modal = document.getElementById('tb-profile-modal');
+  const body = document.getElementById('tb-profile-modal-body');
+  if(!modal || !body) return;
+  body.innerHTML = buildProfileHtml(name);
+  modal.style.display = 'flex';
+}
+function tbCloseProfile(){
+  const modal = document.getElementById('tb-profile-modal');
+  if(modal) modal.style.display = 'none';
 }
 function tbStrengthText(text){
   if(!text) return 'Kein Profil erfasst';
@@ -1226,6 +1328,13 @@ function fillEntwPlayerSelect(){
   sel.innerHTML = '<option value="">– Spieler wählen –</option>' + D.players.slice().sort().map(p=>`<option value="${p}">${p}</option>`).join('');
   if(D.players.includes(cur)) sel.value = cur;
   loadEntwForm();
+  const tzSel = document.getElementById('tz-player');
+  if(tzSel){
+    const tzCur = tzSel.value;
+    tzSel.innerHTML = '<option value="">– Spieler wählen –</option>' + D.players.slice().sort().map(p=>`<option value="${p}">${p}</option>`).join('');
+    if(D.players.includes(tzCur)) tzSel.value = tzCur;
+    loadZieleForm();
+  }
 }
 function importMoritzProfil(){
   if(!confirm('Profil von Moritz mit den Daten aus dem PDF anlegen/überschreiben?')) return;
@@ -1286,6 +1395,7 @@ function saveEntwForm(){
   const name = document.getElementById('e-player').value;
   if(!name){ alert('Bitte zuerst einen Spieler auswählen.'); return; }
   if(!D.entwicklung) D.entwicklung = {};
+  const existing = D.entwicklung[name] || {};
   D.entwicklung[name] = {
     geburtsdatum: document.getElementById('e-geburtsdatum').value,
     datum: document.getElementById('e-datum').value,
@@ -1303,13 +1413,74 @@ function saveEntwForm(){
       hinten: document.getElementById('e-z-hinten').value,
       breite: document.getElementById('e-z-breite').value,
       anker: document.getElementById('e-z-anker').value
-    }
+    },
+    ziele: existing.ziele || [] // bleibt unangetastet, wird über den eigenen Ziele-Bereich gepflegt
   };
   save();
   renderEntwicklung();
   const msg = document.getElementById('e-savemsg');
   msg.textContent = '✓ Gespeichert';
   setTimeout(()=>{ msg.textContent=''; }, 2500);
+}
+
+// ── ADMIN: TRAININGS- & SPIELZIELE ─────────────────────────────
+function loadZieleForm(){
+  const box = document.getElementById('tz-goals');
+  if(!box) return;
+  const name = document.getElementById('tz-player').value;
+  const ziele = (name && D.entwicklung && D.entwicklung[name] && D.entwicklung[name].ziele) || [];
+  box.innerHTML = [0,1,2].map(i=>{
+    const g = ziele[i];
+    const text = g ? g.text : '';
+    const prog = g ? (parseInt(g.progress)||0) : 0;
+    const hist = (g && g.updates && g.updates.length)
+      ? g.updates.slice(-6).reverse().map(u=>`<span style="margin-right:8px">${fmtDate(u.date)}: ${u.progress}%</span>`).join('')
+      : '<span style="color:#aaa">Noch kein Verlauf</span>';
+    return `<div style="border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:10px">
+      <div class="fg" style="margin-bottom:6px"><label>Ziel ${i+1}</label><input type="text" id="tz-text-${i}" value="${text.replace(/"/g,'&quot;')}" placeholder="z.B. Im Zweikampf konsequenter verteidigen" style="width:100%"></div>
+      <div class="fr" style="align-items:center;gap:10px">
+        <input type="range" min="0" max="100" id="tz-prog-${i}" value="${prog}" style="flex:1" oninput="document.getElementById('tz-progval-${i}').textContent=this.value+'%'">
+        <span id="tz-progval-${i}" style="font-weight:800;color:#005078;width:42px">${prog}%</span>
+        <button class="btn bg" onclick="tzAddUpdate(${i})">💾 Aktualisieren</button>
+        <button class="btn br" onclick="tzRemoveGoal(${i})">✕ Entfernen</button>
+      </div>
+      <div id="tz-hist-${i}" style="font-size:.72rem;color:#607282;margin-top:6px">${hist}</div>
+    </div>`;
+  }).join('');
+}
+function tzAddUpdate(idx){
+  const name = document.getElementById('tz-player').value;
+  if(!name){ alert('Bitte zuerst einen Spieler auswählen.'); return; }
+  const text = document.getElementById('tz-text-'+idx).value.trim();
+  if(!text){ alert('Bitte zuerst eine Zielbeschreibung eintragen.'); return; }
+  const prog = parseInt(document.getElementById('tz-prog-'+idx).value)||0;
+  if(!D.entwicklung) D.entwicklung = {};
+  if(!D.entwicklung[name]) D.entwicklung[name] = {};
+  if(!D.entwicklung[name].ziele) D.entwicklung[name].ziele = [];
+  let goal = D.entwicklung[name].ziele[idx];
+  if(!goal){ goal = {text, progress:prog, updates:[]}; D.entwicklung[name].ziele[idx] = goal; }
+  goal.text = text;
+  goal.progress = prog;
+  const today = todayISO();
+  const last = goal.updates[goal.updates.length-1];
+  if(last && last.date===today) last.progress = prog;
+  else goal.updates.push({date:today, progress:prog});
+  save();
+  loadZieleForm();
+  renderEntwicklung();
+  const msg = document.getElementById('tz-savemsg');
+  msg.textContent = '✓ Fortschritt gespeichert';
+  setTimeout(()=>{ msg.textContent=''; }, 2500);
+}
+function tzRemoveGoal(idx){
+  const name = document.getElementById('tz-player').value;
+  if(!name || !D.entwicklung || !D.entwicklung[name] || !D.entwicklung[name].ziele) return;
+  if(!D.entwicklung[name].ziele[idx]) return;
+  if(!confirm('Dieses Ziel wirklich entfernen? Der komplette Verlauf geht dabei verloren.')) return;
+  D.entwicklung[name].ziele = D.entwicklung[name].ziele.filter((g,i)=>i!==idx);
+  save();
+  loadZieleForm();
+  renderEntwicklung();
 }
 
 // ── RENDER: LEISTUNGSDIAGNOSTIK ───────────────────────────────
