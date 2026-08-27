@@ -616,7 +616,99 @@ function defD(){
               'MYKOLA','WARD','EDDY','NJABU','GAS','LEO','MATTIS','AMIN','LINUS'],
     entries: [], // {id, date:'YYYY-MM-DD', category, points:{name:number}}
     videoweeks: [], // {monday:'YYYY-MM-DD', slots:[{id,day,time,player,thema,status}]}
-    entwicklung: {}, // { NAME: {geburtsdatum,datum,faehigkeit,haeufigkeit,hilft,hindert,plan,feld,tun,wohlsten,zonen:{tiefe,vorne,hinten,breite,anker}} }
+    entwicklung: {
+      'GAS': {
+        geburtsdatum: '2012-12-06', datum: '2026-08-05',
+        faehigkeit: 'Schnelles Umschalten, den Ball schnell weiterspielen und dann auch direkt den Weg in die Tiefe gehen',
+        haeufigkeit: '3',
+        hilft: 'Wenn die Mitspieler den Weg in die Tiefe gehen und wenn sie den Ball kriegen, den Kopf hoch machen und weiterspielen',
+        hindert: 'Wenn die Mitspieler nicht kommen/sich anbieten und dann nicht meinen Weg in die Tiefe gehe',
+        plan: 'Schnellerer Antritt und mehr Räume erkennen',
+        feld: 'Meine Schnelligkeit verbessern',
+        tun: 'Mein Tempo und Antritt verbessern und Räume erkennen, plus dann den richtigen Weg gehen',
+        wohlsten: {gruen:['om_re'], gelb:[]},
+        zonen: {tiefe:'4', vorne:'2', hinten:'1', breite:'4', anker:'4'},
+        ziele: []
+      },
+      'MAX': {
+        geburtsdatum: '2012-06-19', datum: '2026-08-26',
+        faehigkeit: 'Spielübersicht im Spielaufbau, Führungsqualitäten (laut/geht voran)',
+        haeufigkeit: '4',
+        hilft: 'Wenn meine Mitspieler auch laut sind und man sich gegenseitig pusht',
+        hindert: 'Zu wenig Fokus',
+        plan: 'Ich probiere mehr Fokus zu haben und mich nicht leicht ablenken zu lassen',
+        feld: 'Ausdauer',
+        tun: 'Im Training an meine Grenzen kommen',
+        wohlsten: {gruen:['dm_mi'], gelb:['om_mi','def_mi']},
+        zonen: {tiefe:'3', vorne:'5', hinten:'4', breite:'4', anker:'4'},
+        ziele: []
+      },
+      'LINUS': {
+        geburtsdatum: '2012-09-03', datum: '2026-09-11',
+        faehigkeit: 'Pässe, Angriffe einleiten',
+        haeufigkeit: '',
+        hilft: 'Motivierende Worte',
+        hindert: 'Angst vor Fehlern',
+        plan: 'Alles dafür geben, im Training versuchen es mehr einzusetzen',
+        feld: 'Beidfüßig, Selbstvertrauen',
+        tun: 'Im Training voll gasgeben und mit mehr Selbstvertrauen angehen',
+        wohlsten: {gruen:[], gelb:[]},
+        zonen: {tiefe:'', vorne:'', hinten:'', breite:'', anker:''},
+        ziele: []
+      },
+      'ABDI': {
+        geburtsdatum: '2012-10-31', datum: '2026-08-17',
+        faehigkeit: '1 gegen 1',
+        haeufigkeit: '3',
+        hilft: 'Schnelligkeit',
+        hindert: 'Druck, Angst',
+        plan: 'In dem ich mich mehr traue',
+        feld: 'Flügel',
+        tun: 'Mehr trainieren, besser zuhören und konzentrieren und alles ernster nehmen',
+        wohlsten: {gruen:['om_li'], gelb:[]},
+        zonen: {tiefe:'4', vorne:'3', hinten:'2', breite:'5', anker:'4'},
+        ziele: []
+      },
+      'FINNI': {
+        geburtsdatum: '2012-08-13', datum: '2026-08-10',
+        faehigkeit: 'Verantwortung, Pässe, Übersicht, Dribbling',
+        haeufigkeit: '4',
+        hilft: 'Unterstützung gesagt bekommen, dass ich mich trauen soll. Und Angebote',
+        hindert: 'Wenig Angebote, oft Angst angeschrien zu werden',
+        plan: 'Motivation von anderen und dass jemand mir sagt ich soll. Keine Angst haben',
+        feld: 'Anlaufverhalten',
+        tun: 'Alles im Training geben',
+        wohlsten: {gruen:['om_li'], gelb:['om_mi','dm_li']},
+        zonen: {tiefe:'5', vorne:'4', hinten:'3', breite:'5', anker:'2'},
+        ziele: []
+      },
+      'NJABU': {
+        geburtsdatum: '2012-10-29', datum: '2026-08-04',
+        faehigkeit: 'Mein Wille und mein Schuss',
+        haeufigkeit: '4',
+        hilft: 'Herausfinden was meine Motivation auslöst. Erster guter Kontakt',
+        hindert: 'Angst vor Fehlern, fehlende Motivation',
+        plan: 'Alleine oder im Training meinen ersten Kontakt üben. Das was mich motiviert verstehen und dann jedes Mal einsetzen',
+        feld: 'Meine ersten Kontakte, mein linker Fuß',
+        tun: 'Im Training vollen Fokus, ersten Kontakt und linken Fuß üben',
+        wohlsten: {gruen:['om_mi'], gelb:['om_li','om_re']},
+        zonen: {tiefe:'4', vorne:'3', hinten:'3', breite:'4', anker:'3'},
+        ziele: []
+      },
+      'LEO': {
+        geburtsdatum: '', datum: '',
+        faehigkeit: 'Ball(zurück)eroberung',
+        haeufigkeit: '3',
+        hilft: '',
+        hindert: 'Ich komme manchmal nicht so ins Spiel rein',
+        plan: 'Gezielt im Training trainieren',
+        feld: 'Rausspielen, Entscheidungen schneller finden',
+        tun: 'Im Training die Situationen suchen und dann üben',
+        wohlsten: {gruen:['def_li'], gelb:['dm_li']},
+        zonen: {tiefe:'3', vorne:'3', hinten:'1', breite:'3', anker:'4'},
+        ziele: []
+      }
+    }, // { NAME: {geburtsdatum,datum,faehigkeit,haeufigkeit,hilft,hindert,plan,feld,tun,wohlsten,zonen:{tiefe,vorne,hinten,breite,anker}} }
     leistung: [
       { date:'2026-07-06', data: {
         'ELI':    {groesse:159,   s10a:2.03, s10b:1.98, s20a:3.51, s20b:3.6,  s30a:5.03, s30b:5.08, weit:[1.6,1.67,null],  yoyo:14.4},
