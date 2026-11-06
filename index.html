@@ -122,6 +122,22 @@ tr:hover td{background:#f4f7fa}
 .sp-card li::before{content:'▸';position:absolute;left:0;top:0;color:#005078;font-weight:900}
 .sp-ex{display:block;color:#8a97a3;font-size:.76rem;font-style:italic;margin-top:2px}
 .sp-card.sp-wide{grid-column:1/-1}
+.sv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px}
+.sv-card{background:#f4f7fa;border-radius:8px;padding:10px}
+.sv-card h4{color:#005078;font-size:.88rem;margin:8px 0 6px}
+.sv-card ul{gap:6px}
+.sv-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.72rem;color:#607282;margin-top:10px;align-items:center}
+.tz-wrap{display:grid;grid-template-columns:minmax(240px,1fr) 1.3fr;gap:14px;align-items:start}
+@media(max-width:700px){.tz-wrap{grid-template-columns:1fr}}
+.tz-zone{background:#f4f7fa;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:4px solid #fad200}
+.tz-zone h4{color:#005078;font-size:.86rem;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.tz-zone div{font-size:.8rem;line-height:1.45;color:#2c3e50}
+.tz-zone b{color:#005078}
+.fokus-card{background:linear-gradient(135deg,#005078,#003d5c);color:#fff;border-radius:10px;padding:14px 16px;margin-bottom:12px;border-left:6px solid #fad200}
+.fokus-card .fk-l{font-size:.68rem;letter-spacing:1px;text-transform:uppercase;color:#fad200;font-weight:800}
+.fokus-card .fk-t{font-size:1rem;font-weight:800;margin:4px 0 2px}
+.fokus-card .fk-d{font-size:.8rem;opacity:.85}
+.spd-ed textarea,.spd-ed input{width:100%;font-size:.8rem}
 .prof-hero{background:linear-gradient(135deg,#005078,#003d5c);border-radius:12px;padding:20px 22px;margin-bottom:14px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 14px rgba(0,0,0,.15)}
 .prof-avatar{width:52px;height:52px;border-radius:50%;background:#fad200;color:#005078;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
 .prof-name{font-size:1.25rem;font-weight:900;letter-spacing:1.2px;color:#fad200;text-transform:uppercase}
@@ -203,6 +219,7 @@ tr:hover td{background:#f4f7fa}
     const DOC_COL = "training", DOC_ID = TEST ? "daten_test" : "daten";
     const BACKUP_COL = TEST ? "training_backups_test" : "training_backups";
     const VREQ_COL = TEST ? "video_requests_test" : "video_requests";
+    const TRAINER_COL = TEST ? "trainer_test" : "trainer"; // nur mit Login lesbar (Firestore-Regeln)
     const ref = db.collection(DOC_COL).doc(DOC_ID);
 
     // ── LOGIN über Firebase Authentication ──
@@ -225,6 +242,8 @@ tr:hover td{background:#f4f7fa}
       }, err=>console.error('Video listen error:', err));
     };
     window.fbVideoCreate = data => db.collection(VREQ_COL).add(data);
+    window.fbTrainerGet = async id => { const d = await db.collection(TRAINER_COL).doc(id).get(); return d.exists ? JSON.parse(d.data().payload) : null; };
+    window.fbTrainerSet = (id, data) => db.collection(TRAINER_COL).doc(id).set({ payload: JSON.stringify(data), ts: new Date().toISOString() });
     window.fbVideoDelete = id => db.collection(VREQ_COL).doc(id).delete();
     window.fbVideoUpdate = (id, data) => db.collection(VREQ_COL).doc(id).update(data);
 
@@ -336,8 +355,8 @@ tr:hover td{background:#f4f7fa}
   <div class="nav-tab" onclick="showPage('leistung',this)">🏃 Leistungsdiagnostik</div>
   <div class="nav-tab" onclick="showPage('spiele',this)">🏟️ Spiele</div>
   <div class="nav-tab" onclick="showPage('video',this)">🎥 Videoanalyse</div>
-  <!-- Spielprinzipien-Reiter ist auf Wunsch aktuell versteckt. Zum Wieder-Einblenden: style="display:none" entfernen -->
-  <div class="nav-tab" onclick="showPage('spielprinzipien',this)" style="display:none">📐 Spielprinzipien</div>
+  <!-- Spielprinzipien-Reiter erscheint automatisch, sobald im Admin-Bereich ein Abschnitt freigegeben ist -->
+  <div class="nav-tab" id="nav-sp" onclick="showPage('spielprinzipien',this)" style="display:none">📐 Spielprinzipien</div>
   <div class="nav-tab" onclick="showPage('entwicklung',this)">🧭 Individuelle Entwicklung</div>
   <div class="nav-tab" onclick="showPage('teambuilder',this)">⚽ Team-Builder</div>
 </div>
@@ -348,6 +367,7 @@ tr:hover td{background:#f4f7fa}
 <div class="content">
 
 <div class="page active" id="page-overview">
+  <div id="ov-fokus"></div>
   <div class="ov-grid">
     <div class="ov-card"><div class="ov-n" id="ov-players">0</div><div class="ov-l">Spieler</div></div>
     <div class="ov-card"><div class="ov-n" id="ov-sessions">0</div><div class="ov-l">Einheiten erfasst</div></div>
@@ -475,59 +495,7 @@ tr:hover td{background:#f4f7fa}
 </div>
 
 <div class="page" id="page-spielprinzipien">
-  <div class="sp-hero">
-    <h2>Spielprinzipien Vicky</h2>
-    <div class="sp-tagline"><span>Flexibel</span><span>Clever</span><span>Aktiv</span></div>
-    <p>Flexible Lösungen für unterschiedliche Situationen — im Kollektiv über gemeinsame, schlaue Lösungen stärker als der Gegner.</p>
-  </div>
-
-  <div class="sp-grid">
-    <div class="sp-card">
-      <h3><span class="sp-num">1</span> ⚽ Ich habe den Ball</h3>
-      <ul>
-        <li>Ich will Gegner vor Herausforderung stellen<span class="sp-ex">andribbeln</span></li>
-        <li>Ich will Gegner überspielen<span class="sp-ex">an Gegnern vorbei Lösungen finden</span></li>
-        <li>Ich bleibe aktiv in der Aktion<span class="sp-ex">ich spiele und sprinte weiter</span></li>
-        <li>Ich habe einen Blick für den gefährlichsten, möglichen Ball<span class="sp-ex">diagonal nach vorne</span></li>
-        <li>Ich weiß, wie wir clever Gefahr vorbereiten können<span class="sp-ex">Klatschball, zurück um nach vorne zu kommen, ins Zentrum um rauszuspielen, nach außen um ins Zentrum zu spielen</span></li>
-      </ul>
-    </div>
-
-    <div class="sp-card">
-      <h3><span class="sp-num">2</span> 🤝 Mein Mitspieler hat den Ball</h3>
-      <ul>
-        <li>Ich helfe meinem Mitspieler<span class="sp-ex">kein Druck → Feld groß machen, Druck → entgegenkommen</span></li>
-        <li>Ich besetze unangenehme Räume<span class="sp-ex">Tasche, Tiefe, Breite</span></li>
-        <li>Ich bewege mich entgegengesetzt zu meinen Mitspielern<span class="sp-ex">Twitch, flexible Lösungen</span></li>
-        <li>Ich kenne unsere Zielräume<span class="sp-ex">in die Tiefe kommen, Tasche bespielen Klatsch/Dreh, Breite → in den Rücken, 2. Pfosten und Rückraum besetzen</span></li>
-      </ul>
-    </div>
-
-    <div class="sp-card">
-      <h3><span class="sp-num">3</span> 🛡️ Mein Gegenspieler hat den Ball</h3>
-      <ul>
-        <li>Ich lenke meinen Gegner dahin, wo ich ihn haben will<span class="sp-ex">auf schwachen Fuß, nach außen etc.</span></li>
-        <li>Ich bin clever in der Balleroberung<span class="sp-ex">Moment erkennen, Pässe nach vorne verteidigen, „reinschälen“</span></li>
-      </ul>
-    </div>
-
-    <div class="sp-card">
-      <h3><span class="sp-num">4</span> 🔄 Die gegnerische Mannschaft hat den Ball</h3>
-      <ul>
-        <li>Wir können flexibel agieren<span class="sp-ex">hoch pressen, tiefer fallen und lauern</span></li>
-        <li>Ich verteidige mit meiner Mannschaft<span class="sp-ex">ballnah verschieben, ballfern frei lassen</span></li>
-        <li>Ich weiß, wie ich mich bei Ballgewinn aus dem Druck lösen kann</li>
-      </ul>
-    </div>
-
-    <div class="sp-card sp-wide">
-      <h3><span class="sp-num">5</span> 🎯 Standardsituationen</h3>
-      <ul>
-        <li>Wenn ich kann, spiele ich schnell<span class="sp-ex">Einwürfe, Freistöße, Ecken</span></li>
-        <li>Wenn wir uns Zeit nehmen, kenne ich meine Aufgaben</li>
-      </ul>
-    </div>
-  </div>
+  <div id="sp-content"></div>
 </div>
 
 <div class="page" id="page-entwicklung">
@@ -677,6 +645,12 @@ tr:hover td{background:#f4f7fa}
       </div>
 
       <div class="asec">
+        <h3>Spielprinzipien — Inhalte &amp; Freigabe</h3>
+        <div style="font-size:.75rem;color:#888;margin-bottom:8px">Nicht freigegebene Abschnitte sind nur für dich sichtbar (auch nicht im Quellcode). Freigegebene Abschnitte erscheinen im Reiter „📐 Spielprinzipien“.</div>
+        <div id="admin-sp"></div>
+      </div>
+
+      <div class="asec">
         <h3>Verlauf verwalten</h3>
         <div id="admin-verlauf"></div>
       </div>
@@ -713,7 +687,7 @@ const WEEKDAYNAMES = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Fre
 
 function defD(){
   // Absichtlich LEER: Spielerdaten liegen nur noch in der Datenbank, nicht im Quellcode.
-  return { players: [], entries: [], videoweeks: [], entwicklung: {}, leistung: [], spiele: [], rueckennummern: {} };
+  return { players: [], entries: [], videoweeks: [], entwicklung: {}, leistung: [], spiele: [], rueckennummern: {}, prinzipien: null };
 }
 // Führt geladene Daten (Firestore/localStorage, evtl. aus einer älteren Version) mit den
 // aktuellen Default-Feldern zusammen, damit fehlende Reiter/Felder nie zum Absturz führen.
@@ -726,6 +700,7 @@ function mergeDefaults(loaded){
   if(!Array.isArray(merged.videoweeks)) merged.videoweeks = base.videoweeks;
   if(!Array.isArray(merged.leistung)) merged.leistung = base.leistung;
   if(!Array.isArray(merged.spiele)) merged.spiele = [];
+  if(!merged.prinzipien || typeof merged.prinzipien!=='object' || !Array.isArray(merged.prinzipien.abschnitte)) merged.prinzipien = null;
   if(!merged.rueckennummern || typeof merged.rueckennummern!=='object' || Array.isArray(merged.rueckennummern)) merged.rueckennummern = {};
   if(!merged.entwicklung || typeof merged.entwicklung!=='object' || Array.isArray(merged.entwicklung)) merged.entwicklung = base.entwicklung;
   return merged;
@@ -901,6 +876,7 @@ function showPage(id, el){
   if(id==='leistung') renderLeistung();
   if(id==='video') renderVideo();
   if(id==='spiele') renderSpiele();
+  if(id==='spielprinzipien') renderSpielprinzipien();
   if(id==='entwicklung') renderEntwicklung();
   if(id==='teambuilder') renderTeamBuilder();
 }
@@ -1367,6 +1343,212 @@ function fbdeUebernehmen(){
   });
   document.getElementById('fbde-box').open = false;
   alert('✓ Übernommen. Bitte noch das Datum eintragen, kurz prüfen und dann „Spiel speichern“.');
+}
+
+
+// ── SPIELPRINZIPIEN ──────────────────────────────────────────
+// Entwurf (alle Abschnitte) liegt im geschützten Trainer-Bereich, öffentlich ist nur die freigegebene Kopie in D.prinzipien.
+const TZ_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" role="img" aria-label="Abschlusszonen im Strafraum" style="width:100%;height:auto;border-radius:8px;display:block">
+  <rect width="400" height="250" fill="#3f8f3f"/>
+  ${[0,1,2,3,4].map(i=>`<rect x="0" y="${i*50}" width="400" height="25" fill="#479a47"/>`).join('')}
+  <g fill="none" stroke="#fff" stroke-width="2">
+    <line x1="8" y1="18" x2="392" y2="18"/>
+    <rect x="62" y="18" width="276" height="150"/>
+    <rect x="138" y="18" width="124" height="48"/>
+    <path d="M150 168 A62 62 0 0 0 250 168"/>
+  </g>
+  <rect x="172" y="6" width="56" height="12" fill="none" stroke="#fff" stroke-width="2.5"/>
+  <circle cx="200" cy="118" r="2.5" fill="#fff"/>
+  <g fill="#fad200" fill-opacity=".5" stroke="#fad200" stroke-width="2">
+    <ellipse cx="98" cy="108" rx="30" ry="52"/><ellipse cx="302" cy="108" rx="30" ry="52"/>
+    <path d="M140 24 L260 24 L235 140 L165 140 Z"/>
+    <rect x="152" y="160" width="96" height="58" rx="6"/>
+  </g>
+  <g font-family="sans-serif" font-weight="900" font-size="15" text-anchor="middle">
+    ${[[98,108,1],[302,108,1],[200,86,2],[200,191,3]].map(([x,y,n])=>`<circle cx="${x}" cy="${y}" r="13" fill="#005078"/><text x="${x}" y="${y+5}" fill="#fad200">${n}</text>`).join('')}
+  </g>
+</svg>`;
+let _svgId = 0;
+function taktikSvg(spec){
+  const id = 'tk'+(++_svgId), H = spec.h || 300;
+  const P = (x,y)=>`${x},${y}`;
+  let el = '';
+  (spec.el||[]).forEach(e=>{
+    if(e.z==='zone') el += `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="6" fill="#fad200" fill-opacity=".35" stroke="#fad200" stroke-width="1.5"/>`+(e.t?`<text x="${e.x+e.w/2}" y="${e.y+e.h/2+4}" class="tk-l" text-anchor="middle">${esc(e.t)}</text>`:'');
+    else if(e.z==='a'){
+      const p = e.p, d = p.length===3 ? `M${P(...p[0])} Q${P(...p[1])} ${P(...p[2])}` : `M${p.map(q=>P(...q)).join(' L')}`;
+      const st = e.s==='lauf' ? 'stroke="#fad200" stroke-dasharray="6 4"' : e.s==='drib' ? 'stroke="#fff" stroke-dasharray="2 4" stroke-linecap="round"' : 'stroke="#fff"';
+      el += `<path d="${d}" fill="none" stroke-width="2.2" ${st} marker-end="url(#${id}${e.s==='lauf'?'y':'w'})"/>`;
+      if(e.t){ const m = p[Math.floor(p.length/2)]; el += `<text x="${(e.tx??m[0])}" y="${(e.ty??m[1]-6)}" class="tk-l" text-anchor="middle">${esc(e.t)}</text>`; }
+    }
+    else if(e.z==='b') el += `<circle cx="${e.x}" cy="${e.y}" r="5" fill="#fff" stroke="#222" stroke-width="1.2"/>`;
+    else if(e.z==='t') el += `<text x="${e.x}" y="${e.y}" class="tk-l" text-anchor="${e.a||'middle'}">${esc(e.t)}</text>`;
+  });
+  (spec.el||[]).filter(e=>e.z==='p'||e.z==='g').forEach(e=>{
+    el += e.z==='p' ? `<circle cx="${e.x}" cy="${e.y}" r="8" fill="#005078" stroke="#fad200" stroke-width="2"/>` : `<circle cx="${e.x}" cy="${e.y}" r="8" fill="#c0392b" stroke="#fff" stroke-width="1.5"/>`;
+    if(e.n) el += `<text x="${e.x}" y="${e.y+(e.up?-13:20)}" class="tk-l" text-anchor="middle">${esc(e.n)}</text>`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 ${H}" role="img" aria-label="${esc(spec.alt||'Taktikskizze')}" style="width:100%;height:auto;border-radius:8px;display:block">
+    <defs>${['w','y'].map(c=>`<marker id="${id}${c}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c==='w'?'#fff':'#fad200'}"/></marker>`).join('')}
+    <style>.tk-l{font:700 10px sans-serif;fill:#fff;paint-order:stroke;stroke:#1d4d1d;stroke-width:3px}</style></defs>
+    <rect width="400" height="${H}" fill="#3f8f3f"/>${Array.from({length:Math.ceil(H/50)},(_,i)=>`<rect x="0" y="${i*50}" width="400" height="25" fill="#479a47"/>`).join('')}
+    <g fill="none" stroke="#fff" stroke-width="2" stroke-opacity=".9"><line x1="8" y1="20" x2="392" y2="20"/><rect x="62" y="20" width="276" height="150"/><rect x="138" y="20" width="124" height="46"/><path d="M150 170 A62 62 0 0 0 250 170"/><path d="M8 30 A10 10 0 0 0 18 20"/><path d="M392 30 A10 10 0 0 1 382 20"/></g>
+    <rect x="172" y="8" width="56" height="12" fill="none" stroke="#fff" stroke-width="2.5"/><circle cx="200" cy="118" r="2.5" fill="#fff"/>
+    ${el}</svg>`;
+}
+const TK_LEGENDE = `<div class="sv-legend"><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#005078" stroke="#fad200" stroke-width="2"/></svg> wir</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#c0392b"/></svg> Gegner</span><span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#005078" stroke-width="2"/></svg> Ball / Pass</span><span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#c9a400" stroke-width="2" stroke-dasharray="5 3"/></svg> Laufweg</span><span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#005078" stroke-width="2" stroke-dasharray="2 3"/></svg> Dribbling</span></div>`;
+function renderVarianten(a){
+  if(!(a.varianten||[]).length) return '';
+  return `<div class="sv-grid">${a.varianten.map(v=>`<div class="sv-card">${v.skizze?taktikSvg(v.skizze):''}<h4>${esc(v.titel)}</h4>
+    <ul>${(v.punkte||[]).map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`).join('')}</div>${a.varianten.some(v=>v.skizze)?TK_LEGENDE:''}`;
+}
+function renderSpielprinzipien(){
+  const P = D.prinzipien, has = !!(P && P.abschnitte && P.abschnitte.length);
+  const tab = document.getElementById('nav-sp'); if(tab) tab.style.display = has ? '' : 'none';
+  const box = document.getElementById('sp-content'); if(!box) return;
+  if(!has){ box.innerHTML = ''; return; }
+  const h = P.hero || {};
+  let html = `<div class="sp-hero"><h2>${esc(h.titel||'Spielprinzipien')}</h2>
+    ${(h.tags||[]).length?`<div class="sp-tagline">${h.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+    ${h.text?`<p>${esc(h.text)}</p>`:''}</div><div class="sp-grid">`;
+  P.abschnitte.forEach(a=>{
+    if(a.typ==='zonen'){
+      html += `<div class="sp-card sp-wide"><h3><span class="sp-num">${a.nr}</span> ${a.icon||''} ${esc(a.titel)}</h3>
+        ${a.intro?`<p style="font-size:.84rem;color:#2c3e50;margin-bottom:10px;line-height:1.45">${esc(a.intro)}</p>`:''}
+        <div class="tz-wrap"><div>${TZ_SVG}
+          ${(a.hinweise||[]).length?`<ul style="margin-top:10px">${a.hinweise.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
+        <div>${(a.zonen||[]).map(z=>`<div class="tz-zone"><h4><span class="sp-num">${z.nr}</span> Zone ${z.nr} · ${esc(z.name)}</h4>
+          <div><b>Technik:</b> ${esc(z.technik)}</div><div><b>Kontakte:</b> ${esc(z.kontakte)}</div><div><b>Spielsituationen:</b> ${esc(z.situationen)}</div></div>`).join('')}</div></div></div>`;
+    } else {
+      html += `<div class="sp-card${((a.punkte||[]).length<=2 || (a.varianten||[]).length)?' sp-wide':''}"><h3><span class="sp-num">${a.nr}</span> ${a.icon||''} ${esc(a.titel)}</h3><ul>
+        ${(a.punkte||[]).map(p=>`<li>${esc(p.t)}${p.d?`<span class="sp-ex">${esc(p.d)}</span>`:''}</li>`).join('')}</ul>${renderVarianten(a)}</div>`;
+    }
+  });
+  box.innerHTML = html + '</div>';
+}
+function renderFokus(){
+  const el = document.getElementById('ov-fokus'); if(!el) return;
+  const f = D.prinzipien && D.prinzipien.fokus;
+  el.innerHTML = f ? `<div class="fokus-card"><div class="fk-l">🎯 Fokus der Woche · ${esc(f.bereich||'')}</div><div class="fk-t">${esc(f.t)}</div>${f.d?`<div class="fk-d">${esc(f.d)}</div>`:''}</div>` : '';
+}
+
+// Admin: Entwurf laden, bearbeiten, freigeben
+let SPD = null, spdStatus = 'leer';
+async function loadPrinzipienEntwurf(){
+  try{ SPD = await window.fbTrainerGet('prinzipien'); spdStatus = SPD ? 'ok' : 'leer'; }
+  catch(e){ console.error(e); SPD = null; spdStatus = 'fehler'; }
+  renderAdminPrinzipien();
+}
+function spdImportText(txt){
+  const d = JSON.parse(txt);
+  if(!d || !Array.isArray(d.abschnitte)) throw new Error('Keine gültige Spielprinzipien-Datei');
+  if(SPD && Array.isArray(SPD.abschnitte)){
+    // Bestehenden Entwurf nur ERGÄNZEN: neue Abschnitte anhängen, bei vorhandenen nur fehlende Teile
+    // (z. B. neue Varianten) übernehmen. Deine Änderungen und Freigaben bleiben unverändert.
+    const neu = [];
+    d.abschnitte.forEach(n=>{
+      const ex = SPD.abschnitte.find(a=>a.id===n.id);
+      if(!ex){ SPD.abschnitte.push(Object.assign({}, n, {frei:false})); neu.push(n.titel); return; }
+      Object.keys(n).forEach(k=>{ if(ex[k]===undefined){ ex[k] = n[k]; neu.push(ex.titel+' → '+(k==='varianten'?'Taktiken':k)); } });
+    });
+    spdStatus = 'neu'; renderAdminPrinzipien();
+    return neu;
+  }
+  SPD = d; spdStatus = 'neu'; renderAdminPrinzipien();
+  return null;
+}
+function spdImportFile(evt){
+  const f = evt.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev=>{ try{
+      const neu = spdImportText(ev.target.result);
+      if(neu===null) alert('✓ Geladen. Jetzt Abschnitte freigeben und „Speichern & veröffentlichen“ tippen.');
+      else alert(neu.length ? '✓ Ergänzt (deine bisherigen Inhalte bleiben unverändert):\n• '+neu.join('\n• ')+'\n\nZum Übernehmen „Speichern & veröffentlichen“ tippen.' : 'Die Datei enthält nichts Neues – dein Entwurf ist schon aktuell.');
+    }catch(e){ alert('Fehler: '+e.message); } evt.target.value=''; };
+  r.readAsText(f);
+}
+function spdExport(){
+  spdCollect();
+  const blob = new Blob([JSON.stringify(SPD,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'spielprinzipien_'+todayISO()+'.json'; a.click();
+}
+function spdToggleEd(i){ const e=document.getElementById('spd-ed-'+i); if(e) e.style.display = e.style.display==='none' ? 'block' : 'none'; }
+function renderAdminPrinzipien(){
+  const el = document.getElementById('admin-sp'); if(!el) return;
+  const fileBtn = `<label class="btn bb" style="display:inline-block;cursor:pointer">📥 Datei laden<input type="file" accept=".json,application/json" style="display:none" onchange="spdImportFile(event)"></label>`;
+  if(spdStatus==='fehler'){ el.innerHTML = '<p style="color:#c0392b;font-size:.8rem">⚠ Kein Zugriff auf den geschützten Bereich. Bitte die Firestore-Regeln aktualisieren (Abschnitt „trainer“).</p>'; return; }
+  if(!SPD){ el.innerHTML = `<p style="font-size:.8rem;color:#888;margin-bottom:6px">Noch keine Spielprinzipien hinterlegt. Lade die Datei <b>spielprinzipien.json</b> einmalig hoch.</p>${fileBtn}`; return; }
+  const h = SPD.hero || {};
+  const fokusOpts = ['<option value="">– kein Fokus –</option>'].concat(SPD.abschnitte.flatMap(a=>(a.punkte||[]).map((p,j)=>{
+    const v = a.id+'|'+j, sel = SPD.fokus && SPD.fokus.abschnitt===a.id && SPD.fokus.punkt===j;
+    return `<option value="${esc(v)}"${sel?' selected':''}>${a.nr}. ${esc(p.t)}${a.frei?'':' (noch nicht freigegeben)'}</option>`;
+  }))).join('');
+  el.innerHTML = `
+    <div class="spd-ed" style="margin-bottom:10px">
+      <div class="fg"><label>Überschrift</label><input id="spd-h-titel" value="${esc(h.titel||'')}"></div>
+      <div class="fg"><label>Schlagworte (mit Komma getrennt)</label><input id="spd-h-tags" value="${esc((h.tags||[]).join(', '))}"></div>
+      <div class="fg"><label>Leitgedanke</label><textarea id="spd-h-text" rows="2">${esc(h.text||'')}</textarea></div>
+    </div>
+    ${SPD.abschnitte.map((a,i)=>`
+      <div class="plist-item"><input type="checkbox" id="spd-frei-${i}" ${a.frei?'checked':''} style="width:auto"><span>${a.nr} ${a.icon||''} ${esc(a.titel)} ${a.frei?'<span class="badge" style="background:#27ae60;color:#fff">öffentlich</span>':'<span class="badge" style="background:#e2e8ee;color:#555">Entwurf</span>'}</span>
+        <button class="small-btn" style="background:#005078" onclick="spdToggleEd(${i})">✎</button></div>
+      <div class="spd-ed" id="spd-ed-${i}" style="display:none;padding:6px 4px 12px">
+        <div class="fg"><label>Titel</label><input id="spd-t-${i}" value="${esc(a.titel)}"></div>
+        ${a.typ==='zonen' ? `
+          <div class="fg"><label>Einleitung</label><textarea id="spd-intro-${i}" rows="2">${esc(a.intro||'')}</textarea></div>
+          ${(a.zonen||[]).map((z,k)=>`<div style="background:#f4f7fa;border-radius:6px;padding:6px 8px;margin-bottom:6px"><b style="font-size:.8rem;color:#005078">Zone ${z.nr}</b>
+            ${['name','technik','kontakte','situationen'].map(f=>`<div class="fg"><label>${{name:'Bereich',technik:'Technik',kontakte:'Kontakte',situationen:'Spielsituationen'}[f]}</label><input id="spd-z-${i}-${k}-${f}" value="${esc(z[f]||'')}"></div>`).join('')}</div>`).join('')}
+          <div class="fg"><label>Hinweise (eine Zeile pro Hinweis)</label><textarea id="spd-hw-${i}" rows="3">${esc((a.hinweise||[]).join('\n'))}</textarea></div>`
+        : `<div class="fg"><label>Punkte – eine Zeile pro Punkt, Erklärung nach „::“</label><textarea id="spd-p-${i}" rows="${Math.max(3,(a.punkte||[]).length+1)}">${esc((a.punkte||[]).map(p=>p.t+(p.d?' :: '+p.d:'')).join('\n'))}</textarea></div>
+          ${(a.varianten||[]).map((v,k)=>`<div style="background:#f4f7fa;border-radius:6px;padding:6px 8px;margin-bottom:6px">
+            <div class="fg"><label>Taktik ${k+1}${v.skizze?' (mit Skizze)':''}</label><input id="spd-v-${i}-${k}-t" value="${esc(v.titel)}"></div>
+            <div class="fg"><label>Stichpunkte – eine Zeile pro Punkt</label><textarea id="spd-v-${i}-${k}-p" rows="${Math.max(3,(v.punkte||[]).length+1)}">${esc((v.punkte||[]).join('\n'))}</textarea></div></div>`).join('')}`}
+      </div>`).join('')}
+    <div class="fg" style="margin-top:8px"><label>🎯 Fokus der Woche (erscheint auf der Übersicht)</label><select id="spd-fokus">${fokusOpts}</select></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn bg" onclick="spdSave()">💾 Speichern &amp; veröffentlichen</button>
+      <button class="btn bb" onclick="spdExport()">⬇ Export</button> ${fileBtn}
+    </div>
+    ${spdStatus==='neu'?'<div style="font-size:.78rem;color:#b9770e;margin-top:6px">⚠ Datei geladen, aber noch nicht gespeichert.</div>':''}`;
+}
+function spdCollect(){
+  if(!SPD || !document.getElementById('spd-h-titel')) return;
+  const v = id => { const e=document.getElementById(id); return e ? e.value : null; };
+  SPD.hero = { titel: v('spd-h-titel').trim(), tags: v('spd-h-tags').split(',').map(x=>x.trim()).filter(Boolean), text: v('spd-h-text').trim() };
+  SPD.abschnitte.forEach((a,i)=>{
+    a.frei = document.getElementById('spd-frei-'+i).checked;
+    a.titel = v('spd-t-'+i).trim() || a.titel;
+    if(a.typ==='zonen'){
+      a.intro = v('spd-intro-'+i).trim();
+      (a.zonen||[]).forEach((z,k)=>['name','technik','kontakte','situationen'].forEach(f=>{ const x=v(`spd-z-${i}-${k}-${f}`); if(x!==null) z[f]=x.trim(); }));
+      a.hinweise = v('spd-hw-'+i).split('\n').map(x=>x.trim()).filter(Boolean);
+    } else {
+      a.punkte = v('spd-p-'+i).split('\n').map(x=>x.trim()).filter(Boolean).map(l=>{ const [t,...d]=l.split('::'); return {t:t.trim(), d:d.join('::').trim()}; });
+      (a.varianten||[]).forEach((va,k)=>{ const t=v(`spd-v-${i}-${k}-t`), p=v(`spd-v-${i}-${k}-p`); if(t!==null) va.titel=t.trim()||va.titel; if(p!==null) va.punkte=p.split('\n').map(x=>x.trim()).filter(Boolean); });
+    }
+  });
+  const fv = v('spd-fokus');
+  SPD.fokus = fv ? {abschnitt: fv.split('|')[0], punkt: +fv.split('|')[1]} : null;
+}
+function spdVeroeffentlichung(spd){
+  const frei = spd.abschnitte.filter(a=>a.frei).map(a=>{ const c = JSON.parse(JSON.stringify(a)); delete c.frei; return c; });
+  let fokus = null;
+  if(spd.fokus){
+    const a = frei.find(x=>x.id===spd.fokus.abschnitt), p = a && a.punkte && a.punkte[spd.fokus.punkt];
+    if(p) fokus = {bereich: a.titel, t: p.t, d: p.d};
+  }
+  return frei.length ? {hero: spd.hero, abschnitte: frei, fokus, stand: todayISO()} : null;
+}
+async function spdSave(){
+  spdCollect();
+  if(SPD.fokus){ const a = SPD.abschnitte.find(x=>x.id===SPD.fokus.abschnitt); if(a && !a.frei && !confirm('Der gewählte Fokus gehört zu einem nicht freigegebenen Abschnitt und wird deshalb nicht angezeigt. Trotzdem speichern?')) return; }
+  try{ await window.fbTrainerSet('prinzipien', SPD); }
+  catch(e){ alert('Speichern im geschützten Bereich fehlgeschlagen – bitte Firestore-Regeln prüfen. Es wurde nichts veröffentlicht.'); return; }
+  spdStatus = 'ok';
+  D.prinzipien = spdVeroeffentlichung(SPD);
+  save(); renderAll(); renderAdminPrinzipien();
+  const n = D.prinzipien ? D.prinzipien.abschnitte.length : 0;
+  alert(`✓ Gespeichert. ${n} Abschnitt${n===1?'':'e'} öffentlich.`);
 }
 
 // ── ADMIN: SPIEL ERFASSEN ────────────────────────────────────
@@ -2218,7 +2400,7 @@ async function adminResetSlot(id){
 
 function renderAll(){
   const steps = [fillFilterSelects, renderOverview, renderTabelle, renderVerlauf,
-                 renderMeinSpieler, renderLeistung, renderVideo, renderEntwicklung, renderSpiele];
+                 renderMeinSpieler, renderLeistung, renderVideo, renderEntwicklung, renderSpiele, renderSpielprinzipien, renderFokus];
   steps.forEach(fn=>{ try{ fn(); } catch(e){ console.error(fn.name+' fehlgeschlagen:', e); } });
 }
 
@@ -2232,6 +2414,7 @@ function showAdminPanel(){
   checkDateWarn();
   adminRefresh();
   migrateLegacyVideo();
+  loadPrinzipienEntwurf();
 }
 function openAdmin(){
   document.getElementById('admin-overlay').style.display='block';
