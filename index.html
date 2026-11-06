@@ -171,6 +171,7 @@ tr:hover td{background:#f4f7fa}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 // ── FIREBASE SETUP (classic/compat SDK — funktioniert auch bei lokal geöffneten Dateien,
 //    ES-Module werden von Browsern bei file:// aus Sicherheitsgründen blockiert) ─────────
@@ -188,11 +189,50 @@ tr:hover td{background:#f4f7fa}
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     // Eigenes Dokument innerhalb des eigenen Projekts
-    const DOC_COL = "training", DOC_ID = "daten";
+    // TESTMODUS: Seite mit ?test=1 aufrufen → alles läuft gegen eine separate Kopie.
+    // Die echten Daten werden im Testmodus nur GELESEN (beim Kopieren), nie geschrieben.
+    const TEST = new URLSearchParams(location.search).get('test') === '1';
+    window.TEST_MODE = TEST;
+    const DOC_COL = "training", DOC_ID = TEST ? "daten_test" : "daten";
+    const BACKUP_COL = TEST ? "training_backups_test" : "training_backups";
+    const VREQ_COL = TEST ? "video_requests_test" : "video_requests";
     const ref = db.collection(DOC_COL).doc(DOC_ID);
+
+    // ── LOGIN über Firebase Authentication ──
+    // Das Passwort wird bei Google geprüft und steht NICHT mehr im Quellcode.
+    const auth = firebase.auth();
+    window.isAdmin = false;
+    auth.onAuthStateChanged(user => {
+      window.isAdmin = !!user;
+      window.dispatchEvent(new Event('authChanged'));
+    });
+    window.fbSignIn = (email, pw) => auth.signInWithEmailAndPassword(email, pw);
+    window.fbSignOut = () => auth.signOut();
+
+    // ── VIDEO-ANFRAGEN: eigene Collection ──
+    // Spieler schreiben nur noch einzelne kleine Anfrage-Dokumente und nie mehr
+    // das Hauptdokument. Dadurch kann ein Spieler-Handy die Daten nicht überschreiben.
+    window.fbVideoListen = function(fromMonday, cb){
+      db.collection(VREQ_COL).where('monday','>=',fromMonday).onSnapshot(snap=>{
+        cb(snap.docs.map(d=>Object.assign({id:d.id}, d.data())));
+      }, err=>console.error('Video listen error:', err));
+    };
+    window.fbVideoCreate = data => db.collection(VREQ_COL).add(data);
+    window.fbVideoDelete = id => db.collection(VREQ_COL).doc(id).delete();
+    window.fbVideoUpdate = (id, data) => db.collection(VREQ_COL).doc(id).update(data);
+
+    // Nur im Testmodus: echte Daten (nur lesend) in die Testkopie übernehmen
+    window.fbCopyLiveToTest = async function(){
+      if(!TEST) throw new Error('Nur im Testmodus erlaubt');
+      const live = await db.collection(DOC_COL).doc('daten').get();
+      if(!live.exists) throw new Error('Live-Dokument nicht gefunden');
+      await ref.set({ payload: live.data().payload });
+      return JSON.parse(live.data().payload);
+    };
 
     window.fbStatus = 'connecting'; // 'online' | 'offline'
     window.fbSave = async function(data) {
+      if(!window.isAdmin){ console.warn('Speichern ohne Login blockiert'); return; }
       try {
         await ref.set({ payload: JSON.stringify(data) });
         window.fbStatus = 'online';
@@ -204,8 +244,9 @@ tr:hover td{background:#f4f7fa}
     // fehlerhaften Ladezustand überschrieben wird, kann hierüber ein früherer Stand
     // wiederhergestellt werden. Es werden nur die letzten 25 Sicherungen behalten.
     window.fbBackup = async function(data) {
+      if(!window.isAdmin) return;
       try {
-        const col = db.collection('training_backups');
+        const col = db.collection(BACKUP_COL);
         await col.add({ ts: new Date().toISOString(), payload: JSON.stringify(data) });
         const snap = await col.orderBy('ts', 'desc').get();
         if (snap.size > 25) {
@@ -216,7 +257,7 @@ tr:hover td{background:#f4f7fa}
     };
     window.fbListBackups = async function() {
       try {
-        const snap = await db.collection('training_backups').orderBy('ts', 'desc').limit(25).get();
+        const snap = await db.collection(BACKUP_COL).orderBy('ts', 'desc').limit(25).get();
         return snap.docs.map(d => ({ id: d.id, ts: d.data().ts, payload: d.data().payload }));
       } catch(e) { console.error("Firebase list backups error:", e); return []; }
     };
@@ -262,6 +303,10 @@ tr:hover td{background:#f4f7fa}
     window.fbListBackups = async function(){ return []; };
     window.fbRestoreBackup = async function(){ throw new Error('Firebase nicht verfügbar'); };
     window.fbListen = function(){};
+    window.fbSignIn = async function(){ throw new Error('Keine Verbindung'); };
+    window.fbSignOut = async function(){};
+    window.fbVideoListen = function(){};
+    window.fbVideoCreate = window.fbVideoDelete = window.fbVideoUpdate = async function(){ throw new Error('Keine Verbindung'); };
   }
   window.firebaseReady = true;
   window.dispatchEvent(new Event('firebaseReady'));
@@ -288,6 +333,7 @@ tr:hover td{background:#f4f7fa}
   <div class="nav-tab" onclick="showPage('entwicklung',this)">🧭 Individuelle Entwicklung</div>
   <div class="nav-tab" onclick="showPage('teambuilder',this)">⚽ Team-Builder</div>
 </div>
+<div id="test-banner" style="display:none;background:#8e44ad;color:#fff;padding:7px 14px;text-align:center;font-size:.8rem;font-weight:700">🧪 TESTMODUS: Änderungen landen nur in der Testkopie, die echten Daten bleiben unberührt.</div>
 <div id="dataloss-banner" style="display:none;background:#c0392b;color:#fff;padding:9px 14px;text-align:center;font-size:.82rem;font-weight:700">
   ⚠️ Die Verbindung zur Datenbank konnte beim Laden nicht sicher bestätigt werden. Angezeigte Daten könnten unvollständig sein — bitte nichts eintragen, sondern die Seite neu laden und die Internetverbindung prüfen.
 </div>
@@ -499,9 +545,10 @@ tr:hover td{background:#f4f7fa}
   <div id="al-wrap">
     <div class="login-box">
       <h2>⚙ Admin Login</h2>
-      <input type="password" id="apw" placeholder="Passwort" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="email" id="aemail" placeholder="E-Mail" autocomplete="username" style="margin-bottom:8px">
+      <input type="password" id="apw" placeholder="Passwort" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       <button class="lbtn" onclick="doLogin()">Anmelden</button>
-      <div class="err" id="apw-err" style="display:none">Falsches Passwort</div>
+      <div class="err" id="apw-err" style="display:none">E-Mail oder Passwort falsch</div>
       <div style="text-align:center;margin-top:12px"><button onclick="closeAdmin()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:.82rem">Abbrechen</button></div>
     </div>
   </div>
@@ -509,7 +556,7 @@ tr:hover td{background:#f4f7fa}
     <div class="admin-wrap">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h2 style="color:#005078;font-size:1.1rem">⚙ Admin-Bereich</h2>
-        <button onclick="closeAdmin()" class="btn br">✕ Schließen</button>
+        <div style="display:flex;gap:6px"><button onclick="doLogout()" class="btn" style="background:#e2e8ee;color:#005078">Abmelden</button><button onclick="closeAdmin()" class="btn br">✕ Schließen</button></div>
       </div>
 
       <div class="asec">
@@ -564,7 +611,7 @@ tr:hover td{background:#f4f7fa}
           <div class="fg"><label>In der Breite</label><select id="e-z-breite"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
           <div class="fg"><label>Als Anker</label><select id="e-z-anker"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
         </div>
-        <div style="margin-top:6px"><button class="btn bg" onclick="saveEntwForm()">💾 Profil speichern</button> <button class="btn bb" onclick="importMoritzProfil()">📥 Moritz-Profil aus PDF importieren</button> <span id="e-savemsg" style="font-size:.78rem;color:#27ae60;margin-left:8px"></span></div>
+        <div style="margin-top:6px"><button class="btn bg" onclick="saveEntwForm()">💾 Profil speichern</button> <span id="e-savemsg" style="font-size:.78rem;color:#27ae60;margin-left:8px"></span></div>
       </div>
 
       <div class="asec">
@@ -592,6 +639,7 @@ tr:hover td{background:#f4f7fa}
       <div class="asec">
         <h3>Backup</h3>
         <button class="btn bb" onclick="exportData()">⬇ Export (JSON)</button>
+        <button class="btn" id="btn-copytest" style="display:none;background:#8e44ad;color:#fff" onclick="copyLiveToTest()">🧪 Echte Daten in Testkopie übernehmen</button>
         <label class="btn bb" style="display:inline-block;cursor:pointer">⬆ Import (JSON)<input type="file" id="a-import" accept=".json" style="display:none" onchange="importData(event)"></label>
         <div style="margin-top:14px">
           <button class="btn br" onclick="loadBackupsList()">🕘 Automatische Sicherungen anzeigen</button>
@@ -608,128 +656,10 @@ tr:hover td{background:#f4f7fa}
 const CATS = ['Abschlussspiel','Tschechenrolle','Spielform mit Inhalt','Torschuss','1vs1','3vs3 Umschalten','Hannes','Sonstiges','Strafpunkte'];
 const MONTHNAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const WEEKDAYNAMES = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
-const PW = 'training2026';
 
 function defD(){
-  return {
-    players: ['THIES','ELI','HENRI','IAN','FINNI','MORITZ','ABDI','CARL','MAX','GREGOR',
-              'MYKOLA','WARD','EDDY','NJABU','GAS','LEO','MATTIS','AMIN','LINUS'],
-    entries: [], // {id, date:'YYYY-MM-DD', category, points:{name:number}}
-    videoweeks: [], // {monday:'YYYY-MM-DD', slots:[{id,day,time,player,thema,status}]}
-    entwicklung: {
-      'GAS': {
-        geburtsdatum: '2012-12-06', datum: '2026-08-05',
-        faehigkeit: 'Schnelles Umschalten, den Ball schnell weiterspielen und dann auch direkt den Weg in die Tiefe gehen',
-        haeufigkeit: '3',
-        hilft: 'Wenn die Mitspieler den Weg in die Tiefe gehen und wenn sie den Ball kriegen, den Kopf hoch machen und weiterspielen',
-        hindert: 'Wenn die Mitspieler nicht kommen/sich anbieten und dann nicht meinen Weg in die Tiefe gehe',
-        plan: 'Schnellerer Antritt und mehr Räume erkennen',
-        feld: 'Meine Schnelligkeit verbessern',
-        tun: 'Mein Tempo und Antritt verbessern und Räume erkennen, plus dann den richtigen Weg gehen',
-        wohlsten: {gruen:['om_re'], gelb:[]},
-        zonen: {tiefe:'4', vorne:'2', hinten:'1', breite:'4', anker:'4'},
-        ziele: []
-      },
-      'MAX': {
-        geburtsdatum: '2012-06-19', datum: '2026-08-26',
-        faehigkeit: 'Spielübersicht im Spielaufbau, Führungsqualitäten (laut/geht voran)',
-        haeufigkeit: '4',
-        hilft: 'Wenn meine Mitspieler auch laut sind und man sich gegenseitig pusht',
-        hindert: 'Zu wenig Fokus',
-        plan: 'Ich probiere mehr Fokus zu haben und mich nicht leicht ablenken zu lassen',
-        feld: 'Ausdauer',
-        tun: 'Im Training an meine Grenzen kommen',
-        wohlsten: {gruen:['dm_mi'], gelb:['om_mi','def_mi']},
-        zonen: {tiefe:'3', vorne:'5', hinten:'4', breite:'4', anker:'4'},
-        ziele: []
-      },
-      'LINUS': {
-        geburtsdatum: '2012-09-03', datum: '2026-09-11',
-        faehigkeit: 'Pässe, Angriffe einleiten',
-        haeufigkeit: '',
-        hilft: 'Motivierende Worte',
-        hindert: 'Angst vor Fehlern',
-        plan: 'Alles dafür geben, im Training versuchen es mehr einzusetzen',
-        feld: 'Beidfüßig, Selbstvertrauen',
-        tun: 'Im Training voll gasgeben und mit mehr Selbstvertrauen angehen',
-        wohlsten: {gruen:[], gelb:[]},
-        zonen: {tiefe:'', vorne:'', hinten:'', breite:'', anker:''},
-        ziele: []
-      },
-      'ABDI': {
-        geburtsdatum: '2012-10-31', datum: '2026-08-17',
-        faehigkeit: '1 gegen 1',
-        haeufigkeit: '3',
-        hilft: 'Schnelligkeit',
-        hindert: 'Druck, Angst',
-        plan: 'In dem ich mich mehr traue',
-        feld: 'Flügel',
-        tun: 'Mehr trainieren, besser zuhören und konzentrieren und alles ernster nehmen',
-        wohlsten: {gruen:['om_li'], gelb:[]},
-        zonen: {tiefe:'4', vorne:'3', hinten:'2', breite:'5', anker:'4'},
-        ziele: []
-      },
-      'FINNI': {
-        geburtsdatum: '2012-08-13', datum: '2026-08-10',
-        faehigkeit: 'Verantwortung, Pässe, Übersicht, Dribbling',
-        haeufigkeit: '4',
-        hilft: 'Unterstützung gesagt bekommen, dass ich mich trauen soll. Und Angebote',
-        hindert: 'Wenig Angebote, oft Angst angeschrien zu werden',
-        plan: 'Motivation von anderen und dass jemand mir sagt ich soll. Keine Angst haben',
-        feld: 'Anlaufverhalten',
-        tun: 'Alles im Training geben',
-        wohlsten: {gruen:['om_li'], gelb:['om_mi','dm_li']},
-        zonen: {tiefe:'5', vorne:'4', hinten:'3', breite:'5', anker:'2'},
-        ziele: []
-      },
-      'NJABU': {
-        geburtsdatum: '2012-10-29', datum: '2026-08-04',
-        faehigkeit: 'Mein Wille und mein Schuss',
-        haeufigkeit: '4',
-        hilft: 'Herausfinden was meine Motivation auslöst. Erster guter Kontakt',
-        hindert: 'Angst vor Fehlern, fehlende Motivation',
-        plan: 'Alleine oder im Training meinen ersten Kontakt üben. Das was mich motiviert verstehen und dann jedes Mal einsetzen',
-        feld: 'Meine ersten Kontakte, mein linker Fuß',
-        tun: 'Im Training vollen Fokus, ersten Kontakt und linken Fuß üben',
-        wohlsten: {gruen:['om_mi'], gelb:['om_li','om_re']},
-        zonen: {tiefe:'4', vorne:'3', hinten:'3', breite:'4', anker:'3'},
-        ziele: []
-      },
-      'LEO': {
-        geburtsdatum: '', datum: '',
-        faehigkeit: 'Ball(zurück)eroberung',
-        haeufigkeit: '3',
-        hilft: '',
-        hindert: 'Ich komme manchmal nicht so ins Spiel rein',
-        plan: 'Gezielt im Training trainieren',
-        feld: 'Rausspielen, Entscheidungen schneller finden',
-        tun: 'Im Training die Situationen suchen und dann üben',
-        wohlsten: {gruen:['def_li'], gelb:['dm_li']},
-        zonen: {tiefe:'3', vorne:'3', hinten:'1', breite:'3', anker:'4'},
-        ziele: []
-      }
-    }, // { NAME: {geburtsdatum,datum,faehigkeit,haeufigkeit,hilft,hindert,plan,feld,tun,wohlsten,zonen:{tiefe,vorne,hinten,breite,anker}} }
-    leistung: [
-      { date:'2026-07-06', data: {
-        'ELI':    {groesse:159,   s10a:2.03, s10b:1.98, s20a:3.51, s20b:3.6,  s30a:5.03, s30b:5.08, weit:[1.6,1.67,null],  yoyo:14.4},
-        'CARL':   {groesse:166.5, s10a:1.82, s10b:1.81, s20a:3.29, s20b:3.15, s30a:4.51, s30b:4.47, weit:[2.15,2.21,null], yoyo:17.2},
-        'IAN':    {groesse:170,   s10a:1.74, s10b:1.75, s20a:3.04, s20b:3,    s30a:4.26, s30b:4.29, weit:[2.11,2.18,null], yoyo:17.2},
-        'GREGOR': {groesse:145,   s10a:1.93, s10b:1.92, s20a:3.45, s20b:3.44, s30a:4.87, s30b:4.94, weit:[1.57,1.67,null], yoyo:16.6},
-        'HENRI':  {groesse:164,   s10a:1.86, s10b:1.86, s20a:3.42, s20b:3.49, s30a:4.79, s30b:4.79, weit:[2.06,2.12,null], yoyo:16.6},
-        'SAM':    {groesse:160,   s10a:1.97, s10b:1.93, s20a:3.47, s20b:3.39, s30a:4.84, s30b:4.89, weit:[1.81,1.89,null], yoyo:15.1},
-        'MAX':    {groesse:174,   s10a:1.83, s10b:1.86, s20a:3.26, s20b:3.27, s30a:4.62, s30b:4.72, weit:[1.89,1.9,null],  yoyo:15.2},
-        'MORITZ': {groesse:160,   s10a:1.98, s10b:1.97, s20a:3.45, s20b:3.4,  s30a:4.91, s30b:4.84, weit:[2,1.95,null],    yoyo:15.6},
-        'BEN':    {groesse:176.5, s10a:1.83, s10b:1.84, s20a:3.39, s20b:3.36, s30a:4.64, s30b:4.68, weit:[2.12,2.06,null], yoyo:14.3},
-        'EDDY':   {groesse:160,   s10a:2.01, s10b:1.87, s20a:3.41, s20b:3.42, s30a:5.08, s30b:5.21, weit:[1.94,1.92,null], yoyo:14.2},
-        'LEO':    {groesse:153,   s10a:1.89, s10b:1.84, s20a:3.39, s20b:3.33, s30a:4.71, s30b:4.75, weit:[2.03,2.07,null], yoyo:17.3},
-        'MATTIS': {groesse:187,   s10a:1.69, s10b:1.8,  s20a:3.01, s20b:3.12, s30a:4.42, s30b:4.51, weit:[2.18,2.26,null], yoyo:17.3},
-        'MYKOLA': {groesse:160,   s10a:1.9,  s10b:2,    s20a:3.27, s20b:3.41, s30a:4.94, s30b:4.93, weit:[1.87,1.82,null], yoyo:15.7},
-        'FINNI':  {groesse:154,   s10a:1.92, s10b:1.9,  s20a:3.28, s20b:3.33, s30a:4.66, s30b:4.64, weit:[1.94,1.99,null], yoyo:15.2},
-        'GAS':    {groesse:158,   s10a:1.95, s10b:1.96, s20a:3.47, s20b:3.52, s30a:4.95, s30b:4.93, weit:[1.97,1.81,null], yoyo:15.7},
-        'NJABU':  {groesse:160,   s10a:1.92, s10b:1.84, s20a:3.31, s20b:3.31, s30a:4.73, s30b:4.69, weit:[2.01,1.92,null], yoyo:15.1}
-      }}
-    ]
-  };
+  // Absichtlich LEER: Spielerdaten liegen nur noch in der Datenbank, nicht im Quellcode.
+  return { players: [], entries: [], videoweeks: [], entwicklung: {}, leistung: [] };
 }
 // Führt geladene Daten (Firestore/localStorage, evtl. aus einer älteren Version) mit den
 // aktuellen Default-Feldern zusammen, damit fehlende Reiter/Felder nie zum Absturz führen.
@@ -745,6 +675,7 @@ function mergeDefaults(loaded){
   return merged;
 }
 
+const LS_KEY = window.TEST_MODE ? 'training_v1_test' : 'training_v1';
 let D = defD();
 let selPlayer = null;
 let _ignoreNextUpdate = false;
@@ -756,7 +687,7 @@ let fbFromRemote = true;
 // localStorage gespiegelt, damit die Prüfung auch direkt nach einem Neuladen greift,
 // bevor die erste Server-Antwort da ist.
 let lastKnownCounts = null;
-try{ const lgc = localStorage.getItem('training_v1_lastgood'); if(lgc) lastKnownCounts = JSON.parse(lgc); }catch(e){}
+try{ const lgc = localStorage.getItem(LS_KEY+'_lastgood'); if(lgc) lastKnownCounts = JSON.parse(lgc); }catch(e){}
 
 function countData(d){
   return {
@@ -767,7 +698,7 @@ function countData(d){
 }
 function updateKnownGood(d){
   lastKnownCounts = countData(d);
-  try{ localStorage.setItem('training_v1_lastgood', JSON.stringify(lastKnownCounts)); }catch(e){}
+  try{ localStorage.setItem(LS_KEY+'_lastgood', JSON.stringify(lastKnownCounts)); }catch(e){}
 }
 function looksLikeDataLoss(d){
   if(!lastKnownCounts) return false;
@@ -782,6 +713,7 @@ function updateDatalossBanner(){
 }
 
 function save(){
+  if(!window.isAdmin){ alert('Speichern ist nur im Admin-Bereich nach dem Login möglich.'); return; }
   // Bremse 1: Verbindung beim Laden nicht bestätigt, obwohl schon mal echte Daten da waren.
   if(!fbFromRemote && lastKnownCounts){
     const proceed = confirm(
@@ -806,7 +738,7 @@ function save(){
     );
     if(!proceed){ alert('Speichern abgebrochen. Es wurde nichts verändert.'); return; }
   }
-  localStorage.setItem('training_v1', JSON.stringify(D));
+  localStorage.setItem(LS_KEY, JSON.stringify(D));
   if(window.fbSave){
     _ignoreNextUpdate = true;
     window.fbSave(D);
@@ -834,7 +766,7 @@ function initFirebase(){
 if(window.firebaseReady){ initFirebase(); }
 else {
   window.addEventListener('firebaseReady', initFirebase);
-  const raw = localStorage.getItem('training_v1');
+  const raw = localStorage.getItem(LS_KEY);
   if(raw) try{ D = mergeDefaults(JSON.parse(raw)); }catch(e){}
 }
 
@@ -1433,30 +1365,6 @@ function fillEntwPlayerSelect(){
     loadZieleForm();
   }
 }
-function importMoritzProfil(){
-  if(!confirm('Profil von Moritz mit den Daten aus dem PDF anlegen/überschreiben?')) return;
-  const sel = document.getElementById('e-player');
-  if(!D.players.includes('MORITZ')){ alert('Spieler "MORITZ" wurde nicht in der Spielerliste gefunden.'); return; }
-  sel.value = 'MORITZ';
-  document.getElementById('e-geburtsdatum').value = '2012-11-20';
-  document.getElementById('e-datum').value = '2026-07-27';
-  document.getElementById('e-faehigkeit').value = 'Platzübersicht / Situationen erkennen';
-  document.getElementById('e-haeufigkeit').value = '4';
-  document.getElementById('e-hilft').value = 'Es hilft mir, wach im Kopf zu sein und das erreiche ich über Ausdauer und Ruhe am Ball';
-  document.getElementById('e-hindert').value = 'Hektik und Bedrängnis';
-  document.getElementById('e-plan').value = 'Übungen / Spielformen bei denen Situationen in Bedrängnis entstehen und ich Lösungen finden muss';
-  document.getElementById('e-feld').value = 'Mehr Lautstärke reinbringen / mehr Bälle fordern (im Spiel)';
-  document.getElementById('e-tun').value = 'Übers Training ins Spiel bringen, immer wieder daran denken und es mir vornehmen';
-  currentWohlsten = {gruen:['st_re'], gelb:['st_li','om_mi']};
-  renderWohlstenGrid();
-  document.getElementById('e-z-tiefe').value = '4';
-  document.getElementById('e-z-vorne').value = '2';
-  document.getElementById('e-z-hinten').value = '3';
-  document.getElementById('e-z-breite').value = '5';
-  document.getElementById('e-z-anker').value = '2';
-  saveEntwForm();
-  alert('Moritz-Profil wurde übernommen. Bitte kurz prüfen, ob Feld 8 (Position auf dem Platz) so passt — du kannst es direkt im Raster anpassen.');
-}
 function loadEntwForm(){
   const name = document.getElementById('e-player').value;
   const p = name ? (D.entwicklung||{})[name] : null;
@@ -1699,32 +1607,70 @@ function ensureWeek(mondayISO){
   }
   return w;
 }
+// ── VIDEO-ANFRAGEN ───────────────────────────────────────────
+let VREQ = []; // Anfragen aus der eigenen Collection: {id, monday, slotId, player, thema, status, ts}
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// Alle Anfragen eines Slots: neue aus der Collection + (bis zur Übernahme) alte aus dem Hauptdokument
+function slotReqs(monday, slotId){
+  const list = VREQ.filter(r=>r.monday===monday && r.slotId===slotId)
+    .map(r=>({id:r.id, player:r.player, thema:r.thema||'', status:r.status||'angefragt'}));
+  if(!D.videoMigrated){
+    const w = (D.videoweeks||[]).find(w=>w.monday===monday);
+    const s = w && w.slots.find(s=>s.id===slotId);
+    if(s){
+      (s.requests||[]).forEach(r=>{ if(!list.some(x=>x.player===r.player))
+        list.push({id:null, legacy:true, player:r.player, thema:r.thema||'', status: s.confirmed===r.player?'bestaetigt':'angefragt'}); });
+      if(s.confirmed && !list.some(x=>x.player===s.confirmed))
+        list.push({id:null, legacy:true, player:s.confirmed, thema:'', status:'bestaetigt'});
+    }
+  }
+  return list;
+}
+// Einmalig nach dem Admin-Login: offene Anfragen aus dem alten Format in die neue Collection
+// kopieren. Das alte Format bleibt im Hauptdokument unverändert erhalten (nichts wird gelöscht).
+async function migrateLegacyVideo(){
+  if(D.videoMigrated || !fbFromRemote || !window.isAdmin) return;
+  const cur = mondayOfISO(todayISO());
+  try{
+    for(const w of (D.videoweeks||[])){
+      if(w.monday < cur) continue;
+      for(const s of w.slots){
+        for(const r of slotReqs(w.monday, s.id)){
+          if(!r.legacy) continue;
+          await window.fbVideoCreate({monday:w.monday, slotId:s.id, player:r.player, thema:r.thema, status:r.status, ts:new Date().toISOString()});
+        }
+      }
+    }
+    D.videoMigrated = true;
+    save();
+  }catch(e){ console.error('Video-Übernahme fehlgeschlagen:', e); }
+}
 function renderSlotRow(week, slot){
-  if(!slot.requests) slot.requests = [];
   const uid = week.monday+'_'+slot.id;
   const whoEl = document.getElementById('v-who');
   const who = whoEl ? whoEl.value : '';
-  const myReq = who ? slot.requests.find(r=>r.player===who) : null;
+  const reqs = slotReqs(week.monday, slot.id);
+  const conf = reqs.find(r=>r.status==='bestaetigt');
+  const myReq = who ? reqs.find(r=>r.player===who) : null;
 
   let body = '';
-  if(slot.confirmed){
-    const confReq = slot.requests.find(r=>r.player===slot.confirmed);
-    body += `<div style="font-weight:700;color:#003d5c">${slot.confirmed} <span class="badge" style="background:#27ae60;color:#fff">✓ bestätigt</span></div>
-      <div style="font-size:.8rem;color:#555;margin-top:2px">${confReq ? confReq.thema : ''}</div>`;
-    if(who===slot.confirmed){
+  if(conf){
+    body += `<div style="font-weight:700;color:#003d5c">${esc(conf.player)} <span class="badge" style="background:#27ae60;color:#fff">✓ bestätigt</span></div>
+      <div style="font-size:.8rem;color:#555;margin-top:2px">${esc(conf.thema)}</div>`;
+    if(who===conf.player){
       body += `<button class="btn br" style="margin-top:6px" onclick="cancelSlot('${week.monday}','${slot.id}')">✕ Absagen</button>`;
     }
   } else {
-    if(slot.requests.length){
-      body += `<div style="font-size:.75rem;color:#888;margin-bottom:4px">${slot.requests.length} Anfrage${slot.requests.length>1?'n':''} — Bestätigung folgt</div>` +
-        slot.requests.map(r=>`<div style="font-size:.8rem;margin-top:4px"><b>${r.player}</b> <span class="badge" style="background:#e8a93c;color:#fff">⏳ angefragt</span><br><span style="color:#666">${r.thema}</span></div>`).join('');
+    if(reqs.length){
+      body += `<div style="font-size:.75rem;color:#888;margin-bottom:4px">${reqs.length} Anfrage${reqs.length>1?'n':''} — Bestätigung folgt</div>` +
+        reqs.map(r=>`<div style="font-size:.8rem;margin-top:4px"><b>${esc(r.player)}</b> <span class="badge" style="background:#e8a93c;color:#fff">⏳ angefragt</span><br><span style="color:#666">${esc(r.thema)}</span></div>`).join('');
     }
     if(myReq){
       body += `<button class="btn br" style="margin-top:8px" onclick="cancelSlot('${week.monday}','${slot.id}')">✕ Anfrage zurückziehen</button>`;
     } else {
       body += `<div style="margin-top:8px">
-        <input type="text" id="vt_${uid}" placeholder="Thema / Szene, die du besprechen möchtest">
-        <button class="btn bg" style="margin-top:6px" onclick="bookSlot('${week.monday}','${slot.id}')">📩 ${slot.requests.length ? 'Ebenfalls anfragen' : 'Anfragen'}</button>
+        <input type="text" id="vt_${uid}" maxlength="280" placeholder="Thema / Szene, die du besprechen möchtest">
+        <button class="btn bg" style="margin-top:6px" onclick="bookSlot('${week.monday}','${slot.id}')">📩 ${reqs.length ? 'Ebenfalls anfragen' : 'Anfragen'}</button>
       </div>`;
     }
   }
@@ -1758,63 +1704,56 @@ function renderVideo(){
   document.getElementById('v-montag').innerHTML = week.slots.filter(s=>s.day==='Montag').map(s=>renderSlotRow(week,s)).join('');
   document.getElementById('v-freitag').innerHTML = week.slots.filter(s=>s.day==='Freitag').map(s=>renderSlotRow(week,s)).join('');
 }
-function bookSlot(monday, slotId){
+async function bookSlot(monday, slotId){
   const who = document.getElementById('v-who').value;
   if(!who){ alert('Bitte zuerst deinen Namen auswählen.'); return; }
-  const uid = monday+'_'+slotId;
-  const themaEl = document.getElementById('vt_'+uid);
-  const thema = themaEl ? themaEl.value.trim() : '';
+  const themaEl = document.getElementById('vt_'+monday+'_'+slotId);
+  const thema = themaEl ? themaEl.value.trim().slice(0,280) : '';
   if(!thema){ alert('Bitte kurz angeben, welche Szene bzw. welches Thema du besprechen möchtest.'); return; }
-  const week = D.videoweeks.find(w=>w.monday===monday);
-  const slot = week && week.slots.find(s=>s.id===slotId);
-  if(!slot) return;
-  if(!slot.requests) slot.requests = [];
-  if(slot.confirmed){ alert('Dieser Slot ist bereits vergeben.'); renderVideo(); return; }
-  if(slot.requests.some(r=>r.player===who)){ alert('Du hast diesen Slot schon angefragt.'); return; }
-  slot.requests.push({player:who, thema});
-  save();
-  renderVideo();
+  const reqs = slotReqs(monday, slotId);
+  if(reqs.some(r=>r.status==='bestaetigt')){ alert('Dieser Slot ist bereits vergeben.'); renderVideo(); return; }
+  if(reqs.some(r=>r.player===who)){ alert('Du hast diesen Slot schon angefragt.'); return; }
+  try{
+    await window.fbVideoCreate({monday, slotId, player:who, thema, status:'angefragt', ts:new Date().toISOString()});
+  }catch(e){ alert('Anfrage konnte nicht gesendet werden. Bitte Internetverbindung prüfen.'); }
 }
-function cancelSlot(monday, slotId){
+async function cancelSlot(monday, slotId){
   const who = document.getElementById('v-who').value;
-  const week = D.videoweeks.find(w=>w.monday===monday);
-  const slot = week && week.slots.find(s=>s.id===slotId);
-  if(!slot) return;
-  slot.requests = (slot.requests||[]).filter(r=>r.player!==who);
-  if(slot.confirmed===who) slot.confirmed = null;
-  save();
-  renderVideo();
+  const r = slotReqs(monday, slotId).find(r=>r.player===who);
+  if(!r) return;
+  if(!r.id){ alert('Diese Anfrage stammt noch aus dem alten System. Bitte kurz beim Trainer melden.'); return; }
+  try{ await window.fbVideoDelete(r.id); }
+  catch(e){ alert('Das hat nicht geklappt. Bitte Internetverbindung prüfen.'); }
 }
 function renderAdminVideo(){
   const el = document.getElementById('admin-video');
   if(!el) return;
-  if(!D.videoweeks || !D.videoweeks.length){
-    el.innerHTML = '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Wochen angelegt.</p>';
-    return;
-  }
-  const weeks = D.videoweeks.slice().sort((a,b)=>a.monday.localeCompare(b.monday));
+  const from = addDaysISO(mondayOfISO(todayISO()), -28);
+  const mondays = new Set(VREQ.map(r=>r.monday));
+  if(!D.videoMigrated) (D.videoweeks||[]).forEach(w=>mondays.add(w.monday));
   let html = '';
-  weeks.forEach(w=>{
-    const relevant = w.slots.filter(s=>(s.requests && s.requests.length) || s.confirmed);
+  [...mondays].filter(m=>m>=from).sort().forEach(monday=>{
+    const week = ensureWeek(monday);
+    const relevant = week.slots.filter(s=>slotReqs(monday, s.id).length);
     if(!relevant.length) return;
-    html += `<div style="margin-bottom:12px"><div style="font-weight:700;color:#005078;margin-bottom:6px;font-size:.85rem">Woche ab ${fmtDate(w.monday)}</div>`;
+    html += `<div style="margin-bottom:12px"><div style="font-weight:700;color:#005078;margin-bottom:6px;font-size:.85rem">Woche ab ${fmtDate(monday)}</div>`;
     relevant.forEach(s=>{
       html += `<div style="background:#f4f7fa;border-radius:8px;padding:8px 10px;margin-bottom:8px">
         <div style="font-weight:700;font-size:.82rem;color:#003d5c;margin-bottom:4px">${s.day} ${s.time}</div>`;
-      (s.requests||[]).forEach(r=>{
-        const isConf = s.confirmed===r.player;
+      slotReqs(monday, s.id).forEach(r=>{
+        const isConf = r.status==='bestaetigt';
         const badge = isConf
           ? '<span class="badge" style="background:#27ae60;color:#fff">✓ bestätigt</span>'
           : '<span class="badge" style="background:#e8a93c;color:#fff">⏳ angefragt</span>';
+        const btns = r.id ? `${!isConf ? `<button class="btn bg" style="padding:6px 10px" onclick="adminChooseRequest('${r.id}')">✓ Auswählen</button>` : `<button class="btn" style="padding:6px 10px;background:#e2e8ee;color:#005078" onclick="adminResetSlot('${r.id}')">↺ Zurücksetzen</button>`}
+            <button class="btn br" style="padding:6px 10px" onclick="adminDeclineRequest('${r.id}')">✕</button>`
+          : '<span style="font-size:.72rem;color:#888">wird übernommen…</span>';
         html += `<div class="prow" style="align-items:flex-start;margin-bottom:6px">
           <div style="flex:1;min-width:0">
-            <div style="font-size:.8rem"><b>${r.player}</b> ${badge}</div>
-            <div style="font-size:.78rem;color:#666;margin-top:2px">${r.thema || '–'}</div>
+            <div style="font-size:.8rem"><b>${esc(r.player)}</b> ${badge}</div>
+            <div style="font-size:.78rem;color:#666;margin-top:2px">${esc(r.thema) || '–'}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            ${!isConf ? `<button class="btn bg" style="padding:6px 10px" onclick="adminChooseRequest('${w.monday}','${s.id}','${r.player}')">✓ Auswählen</button>` : `<button class="btn" style="padding:6px 10px;background:#e2e8ee;color:#005078" onclick="adminResetSlot('${w.monday}','${s.id}')">↺ Zurücksetzen</button>`}
-            <button class="btn br" style="padding:6px 10px" onclick="adminDeclineRequest('${w.monday}','${s.id}','${r.player}')">✕</button>
-          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">${btns}</div>
         </div>`;
       });
       html += `</div>`;
@@ -1823,27 +1762,20 @@ function renderAdminVideo(){
   });
   el.innerHTML = html || '<p style="color:#aaa;font-style:italic;font-size:.85rem">Aktuell keine offenen Anfragen.</p>';
 }
-function adminChooseRequest(monday, slotId, player){
-  const week = D.videoweeks.find(w=>w.monday===monday);
-  const slot = week && week.slots.find(s=>s.id===slotId);
-  if(!slot) return;
-  slot.confirmed = player;
-  save(); renderAll(); adminRefresh();
+async function adminChooseRequest(id){
+  const r = VREQ.find(x=>x.id===id); if(!r) return;
+  // Pro Slot nur eine Bestätigung: evtl. andere bestätigte Anfrage im selben Slot zurücksetzen
+  const others = VREQ.filter(x=>x.monday===r.monday && x.slotId===r.slotId && x.id!==id && x.status==='bestaetigt');
+  try{
+    for(const o of others) await window.fbVideoUpdate(o.id, {status:'angefragt'});
+    await window.fbVideoUpdate(id, {status:'bestaetigt'});
+  }catch(e){ alert('Fehler: '+e.message); }
 }
-function adminDeclineRequest(monday, slotId, player){
-  const week = D.videoweeks.find(w=>w.monday===monday);
-  const slot = week && week.slots.find(s=>s.id===slotId);
-  if(!slot) return;
-  slot.requests = (slot.requests||[]).filter(r=>r.player!==player);
-  if(slot.confirmed===player) slot.confirmed = null;
-  save(); renderAll(); adminRefresh();
+async function adminDeclineRequest(id){
+  try{ await window.fbVideoDelete(id); }catch(e){ alert('Fehler: '+e.message); }
 }
-function adminResetSlot(monday, slotId){
-  const week = D.videoweeks.find(w=>w.monday===monday);
-  const slot = week && week.slots.find(s=>s.id===slotId);
-  if(!slot) return;
-  slot.confirmed = null;
-  save(); renderAll(); adminRefresh();
+async function adminResetSlot(id){
+  try{ await window.fbVideoUpdate(id, {status:'angefragt'}); }catch(e){ alert('Fehler: '+e.message); }
 }
 
 function renderAll(){
@@ -1853,22 +1785,51 @@ function renderAll(){
 }
 
 // ── ADMIN ─────────────────────────────────────────────────────
+function showAdminPanel(){
+  document.getElementById('al-wrap').style.display='none';
+  document.getElementById('ap-wrap').style.display='block';
+  document.getElementById('a-date').value = todayISO();
+  const ct = document.getElementById('btn-copytest');
+  if(ct) ct.style.display = window.TEST_MODE ? 'inline-block' : 'none';
+  checkDateWarn();
+  adminRefresh();
+  migrateLegacyVideo();
+}
 function openAdmin(){
   document.getElementById('admin-overlay').style.display='block';
+  if(window.isAdmin){ showAdminPanel(); return; }
   document.getElementById('al-wrap').style.display='block';
   document.getElementById('ap-wrap').style.display='none';
   document.getElementById('apw').value='';
   document.getElementById('apw-err').style.display='none';
 }
 function closeAdmin(){ document.getElementById('admin-overlay').style.display='none'; renderAll(); }
-function doLogin(){
-  if(document.getElementById('apw').value===PW){
-    document.getElementById('al-wrap').style.display='none';
-    document.getElementById('ap-wrap').style.display='block';
-    document.getElementById('a-date').value = todayISO();
-    checkDateWarn();
-    adminRefresh();
-  } else document.getElementById('apw-err').style.display='block';
+async function doLogin(){
+  const email = document.getElementById('aemail').value.trim();
+  const pw = document.getElementById('apw').value;
+  try{
+    await window.fbSignIn(email, pw);
+    window.isAdmin = true;
+    document.getElementById('apw').value='';
+    showAdminPanel();
+  }catch(e){
+    console.error(e);
+    document.getElementById('apw-err').style.display='block';
+  }
+}
+async function doLogout(){
+  await window.fbSignOut();
+  window.isAdmin = false;
+  closeAdmin();
+}
+async function copyLiveToTest(){
+  if(!confirm('Testkopie mit dem aktuellen Stand der echten Daten überschreiben? (Die echten Daten werden dabei nur gelesen.)')) return;
+  try{
+    const parsed = await window.fbCopyLiveToTest();
+    D = mergeDefaults(parsed); updateKnownGood(D); fbFromRemote = true;
+    renderAll(); adminRefresh();
+    alert('✓ Testkopie aktualisiert.');
+  }catch(e){ alert('Fehler: '+e.message); }
 }
 function checkDateWarn(){
   const val = document.getElementById('a-date').value;
@@ -2040,13 +2001,21 @@ async function restoreBackup(id){
     updateKnownGood(D);
     fbFromRemote = true;
     updateDatalossBanner();
-    localStorage.setItem('training_v1', JSON.stringify(D));
+    localStorage.setItem(LS_KEY, JSON.stringify(D));
     renderAll(); adminRefresh();
     alert('✓ Wiederhergestellt.');
   }catch(err){ alert('Fehler beim Wiederherstellen: '+err); }
 }
 
 // Initiales Rendern (falls Firebase noch nicht bereit)
+if(window.TEST_MODE){ const tb=document.getElementById('test-banner'); if(tb) tb.style.display='block'; }
+if(window.fbVideoListen){
+  window.fbVideoListen(addDaysISO(mondayOfISO(todayISO()), -28), list=>{
+    VREQ = list;
+    try{ renderVideo(); }catch(e){}
+    if(document.getElementById('admin-overlay').style.display==='block'){ try{ renderAdminVideo(); }catch(e){} }
+  });
+}
 renderAll();
 setInterval(()=>{
   const b = document.getElementById('sync-badge');
