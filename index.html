@@ -69,6 +69,13 @@ tr:hover td{background:#f4f7fa}
 .err{color:#c0392b;font-size:.8rem;text-align:center;margin-top:7px}
 .admin-wrap{background:#fff;border-radius:10px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.15);max-width:960px;margin:16px auto}
 .asec{margin-bottom:20px}
+.mon-bar{height:8px;border-radius:4px;background:#fad200;min-width:2px}
+.res{display:inline-block;min-width:44px;text-align:center;font-weight:800;border-radius:6px;padding:2px 6px;color:#fff}
+.wb-badge{padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.wb-landesliga{background:#005078;color:#fad200}.wb-pokal{background:#fad200;color:#005078}.wb-testspiel{background:#e2e8ee;color:#555}
+.res-s{background:#27ae60}.res-u{background:#7f8c8d}.res-n{background:#c0392b}
+.sp-tab input,.sp-tab select{padding:4px 5px;font-size:.8rem}
+.sp-tab td{padding:4px 5px}
 .asec h3{color:#005078;font-size:.82rem;font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:9px;padding-bottom:5px;border-bottom:2px solid #fad200}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .prow{display:flex;align-items:center;justify-content:space-between;background:#f4f7fa;border-radius:6px;padding:6px 8px;flex-wrap:wrap;row-gap:6px}
@@ -316,7 +323,7 @@ tr:hover td{background:#f4f7fa}
 <body>
 <div class="header">
   <div class="header-inner">
-    <div id="headerLogo">⚽</div>
+    <div id="headerLogo"><img src="https://sc-victoria.de/wp-content/uploads/2025/07/190620_vic_logo_auf_gelb.png" alt="SC Victoria Hamburg" style="object-fit:contain" onerror="this.parentNode.textContent='[SC-Victoria-Logo]';this.remove()"></div>
     <div class="htitle"><h1>Trainingstabelle</h1><div class="sub">SC Victoria Hamburg · Saison 2026 <span id="sync-badge" class="offline-badge" style="display:none">⚠ Offline-Modus</span></div></div>
     <button class="abtn" onclick="openAdmin()">⚙ Admin</button>
   </div>
@@ -327,6 +334,7 @@ tr:hover td{background:#f4f7fa}
   <div class="nav-tab" onclick="showPage('verlauf',this)">🗓️ Verlauf</div>
   <div class="nav-tab" onclick="showPage('meinspieler',this)">⭐ Mein Spieler</div>
   <div class="nav-tab" onclick="showPage('leistung',this)">🏃 Leistungsdiagnostik</div>
+  <div class="nav-tab" onclick="showPage('spiele',this)">🏟️ Spiele</div>
   <div class="nav-tab" onclick="showPage('video',this)">🎥 Videoanalyse</div>
   <!-- Spielprinzipien-Reiter ist auf Wunsch aktuell versteckt. Zum Wieder-Einblenden: style="display:none" entfernen -->
   <div class="nav-tab" onclick="showPage('spielprinzipien',this)" style="display:none">📐 Spielprinzipien</div>
@@ -403,6 +411,19 @@ tr:hover td{background:#f4f7fa}
     <div style="font-size:.75rem;color:#aaa">Tippe deinen Namen an für deine persönliche Auswertung</div>
   </div>
   <div id="ms-content"></div>
+</div>
+
+<div class="page" id="page-spiele">
+  <div class="card">
+    <div class="card-title">🏟️ Spiele <span class="badge" id="spiele-bilanz"></span></div>
+    <div class="fr"><div class="fg"><label>Wettbewerb</label><select id="spiele-wb" onchange="renderSpiele()"><option value="all">Alle Spiele</option><option>Landesliga</option><option>Pokal</option><option>Testspiel</option></select></div></div>
+    <div id="spiele-liste"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📈 Spielerstatistik</div>
+    <div style="overflow-x:auto" id="spiele-stats"></div>
+    <div style="font-size:.72rem;color:#aaa;margin-top:6px">Tippe auf eine Spalte, um danach zu sortieren.</div>
+  </div>
 </div>
 
 <div class="page" id="page-leistung">
@@ -623,6 +644,39 @@ tr:hover td{background:#f4f7fa}
       </div>
 
       <div class="asec">
+        <h3>Spiel erfassen</h3>
+        <div class="fr">
+          <div class="fg"><label>Datum</label><input type="date" id="g-datum"></div>
+          <div class="fg"><label>Gegner</label><input type="text" id="g-gegner" style="width:170px"></div>
+          <div class="fg"><label>Ort</label><select id="g-ort"><option value="H">Heim</option><option value="A">Auswärts</option></select></div>
+          <div class="fg"><label>Tore wir</label><input type="number" min="0" id="g-te" style="width:60px"></div>
+          <div class="fg"><label>Tore Gegner</label><input type="number" min="0" id="g-tg" style="width:60px"></div>
+          <div class="fg"><label>Spieldauer (Min.)</label><input type="number" min="1" id="g-dauer" value="70" style="width:70px"></div>
+          <div class="fg"><label>Wettbewerb</label><select id="g-wb"><option>Landesliga</option><option>Pokal</option><option>Testspiel</option></select></div>
+        </div>
+        <details id="fbde-box" style="margin:6px 0 12px;background:#f4f7fa;border-radius:8px;padding:8px 10px">
+          <summary style="cursor:pointer;font-weight:700;color:#005078;font-size:.85rem">📋 Aus fussball.de einfügen</summary>
+          <div style="font-size:.75rem;color:#666;margin:8px 0;line-height:1.5">1. Spiel auf fussball.de öffnen, Reiter <b>„Aufstellung“</b> anklicken, alles markieren (Strg+A bzw. am Handy lange tippen → „Alles auswählen“), kopieren und hier einfügen.<br>2. Dasselbe mit dem Reiter <b>„Spielverlauf“</b> – einfach darunter einfügen.<br>3. „Auswerten“ tippen, Vorschau prüfen, übernehmen. Datum noch eintragen, dann speichern.</div>
+          <textarea id="fbde-text" rows="6" style="width:100%;font-size:.78rem" placeholder="Text von fussball.de hier einfügen …"></textarea>
+          <div class="fr" style="margin-top:6px">
+            <div class="fg"><label>Unser Teamname auf fussball.de</label><input type="text" id="fbde-key" value="Victoria" style="width:130px"></div>
+            <div class="fg"><button class="btn bb" onclick="fbdeAuswerten()">🔍 Auswerten</button></div>
+            <div class="fg"><button class="btn" style="background:#e2e8ee;color:#005078" onclick="document.getElementById('fbde-text').value='';document.getElementById('fbde-preview').innerHTML=''">✕ Leeren</button></div>
+          </div>
+          <div id="fbde-preview"></div>
+        </details>
+        <div class="fg"><label>Link zum Spiel auf fussball.de (optional)</label><input type="url" id="g-link" placeholder="https://www.fussball.de/spiel/…"></div>
+        <div style="font-size:.75rem;color:#888;margin:6px 0">Einsatz „Start“ trägt automatisch die volle Spieldauer ein – bei Auswechslung einfach die Minuten anpassen. Rückennummern werden aus der Spielerverwaltung vorbelegt.</div>
+        <div style="overflow-x:auto"><table class="sp-tab"><thead><tr><th>Spieler</th><th>Nr.</th><th>Einsatz</th><th>Min.</th><th>Tore</th><th>Vorl.</th></tr></thead><tbody id="g-rows"></tbody></table></div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn bg" onclick="saveSpiel()">💾 Spiel speichern</button>
+          <button class="btn" style="background:#e2e8ee;color:#005078" onclick="resetSpielForm()">✕ Formular leeren</button>
+          <span id="g-mode" style="font-size:.78rem;color:#8e44ad;font-weight:700"></span>
+        </div>
+        <div id="admin-spiele" style="margin-top:12px"></div>
+      </div>
+
+      <div class="asec">
         <h3>Verlauf verwalten</h3>
         <div id="admin-verlauf"></div>
       </div>
@@ -659,7 +713,7 @@ const WEEKDAYNAMES = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Fre
 
 function defD(){
   // Absichtlich LEER: Spielerdaten liegen nur noch in der Datenbank, nicht im Quellcode.
-  return { players: [], entries: [], videoweeks: [], entwicklung: {}, leistung: [] };
+  return { players: [], entries: [], videoweeks: [], entwicklung: {}, leistung: [], spiele: [], rueckennummern: {} };
 }
 // Führt geladene Daten (Firestore/localStorage, evtl. aus einer älteren Version) mit den
 // aktuellen Default-Feldern zusammen, damit fehlende Reiter/Felder nie zum Absturz führen.
@@ -671,6 +725,8 @@ function mergeDefaults(loaded){
   if(!Array.isArray(merged.entries)) merged.entries = base.entries;
   if(!Array.isArray(merged.videoweeks)) merged.videoweeks = base.videoweeks;
   if(!Array.isArray(merged.leistung)) merged.leistung = base.leistung;
+  if(!Array.isArray(merged.spiele)) merged.spiele = [];
+  if(!merged.rueckennummern || typeof merged.rueckennummern!=='object' || Array.isArray(merged.rueckennummern)) merged.rueckennummern = {};
   if(!merged.entwicklung || typeof merged.entwicklung!=='object' || Array.isArray(merged.entwicklung)) merged.entwicklung = base.entwicklung;
   return merged;
 }
@@ -844,6 +900,7 @@ function showPage(id, el){
   if(id==='meinspieler') renderMeinSpieler();
   if(id==='leistung') renderLeistung();
   if(id==='video') renderVideo();
+  if(id==='spiele') renderSpiele();
   if(id==='entwicklung') renderEntwicklung();
   if(id==='teambuilder') renderTeamBuilder();
 }
@@ -987,6 +1044,8 @@ function renderMeinSpieler(){
     </div>
     ${md?'<span class="md-badge">🧺 Materialdienst diesen Monat</span>':''}
   </div>
+  ${renderMonatsKarte(selPlayer)}
+  ${renderSpielerSpielKarte(selPlayer)}
   <div class="card"><div class="card-title">📋 Punkte nach Kategorie</div>
     <table><thead><tr><th>Kategorie</th><th>Einsätze</th><th>Punkte</th></tr></thead><tbody>
     ${perCat.map(c=>`<tr><td>${c.cat}</td><td>${c.einsaetze}</td><td style="font-weight:700;color:#005078">${c.points}</td></tr>`).join('')}
@@ -1010,6 +1069,385 @@ function renderMeinSpieler(){
     : '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Einträge.</p>';
   html += '</div>';
   box.innerHTML = html;
+}
+
+// ── MEIN SPIELER: MONATSWERTUNG ──────────────────────────────
+// Platz je Monat nach derselben Logik wie Tabelle & Materialdienst (nur Spieler mit Einsätzen im Monat).
+function monatsWertung(player){
+  return availableMonths().map(mk=>{
+    const tab = buildTable(filteredEntries(mk,'all')).filter(r=>r.einsaetze>0);
+    const idx = tab.findIndex(r=>r.name===player);
+    const me = idx>=0 ? tab[idx] : null;
+    const md = tab.slice(-Math.min(4, tab.length)).some(r=>r.name===player);
+    return {mk, rank: idx>=0 ? idx+1 : null, of: tab.length, points: me?me.points:0, einsaetze: me?me.einsaetze:0, md: md && idx>=0, best: tab.length?tab[0].points:0};
+  });
+}
+function renderMonatsKarte(player){
+  const rows = monatsWertung(player);
+  if(!rows.length) return '';
+  const maxPts = Math.max(1, ...rows.map(r=>Math.abs(r.points)));
+  const medal = r => r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':'';
+  return `<div class="card"><div class="card-title">📅 Platzierung je Monat</div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Monat</th><th>Platz</th><th>Punkte</th><th>Einsätze</th><th style="width:30%"></th></tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td style="font-weight:600">${monthLabel(r.mk)}${r.mk===currentMonthKey()?' <span style="font-size:.68rem;color:#888">(läuft)</span>':''}</td>
+      <td style="font-weight:800;color:#005078">${r.rank?`${medal(r)} ${r.rank}. <span style="font-weight:400;color:#888;font-size:.75rem">von ${r.of}</span>`:'<span style="color:#aaa">–</span>'}${r.md?' <span title="Materialdienst">🧺</span>':''}</td>
+      <td style="font-weight:700">${r.points}</td>
+      <td>${r.einsaetze}</td>
+      <td><div class="mon-bar" style="width:${Math.max(0,r.points)/maxPts*100}%"></div></td>
+    </tr>`).join('')}
+    </tbody></table></div>
+    <div style="font-size:.72rem;color:#aaa;margin-top:6px">🧺 = Materialdienst in diesem Monat</div>
+  </div>`;
+}
+
+// ── SPIELE ───────────────────────────────────────────────────
+function spielErgebnis(g){
+  if(g.toreEigen===''||g.toreEigen==null||g.toreGegner===''||g.toreGegner==null) return {txt:'–:–', cls:''};
+  const e=+g.toreEigen, x=+g.toreGegner;
+  return {txt:`${e}:${x}`, cls: e>x?'res-s':e<x?'res-n':'res-u'};
+}
+const WETTBEWERBE = ['Landesliga','Pokal','Testspiel'];
+// Alte Bezeichnung „Liga“ wird als Landesliga gewertet
+function spielWb(g){ const w = g.wettbewerb; return (!w || w==='Liga') ? 'Landesliga' : w; }
+function wbBadge(g){ const w = spielWb(g); return `<span class="wb-badge wb-${w.toLowerCase()}">${esc(w)}</span>`; }
+function spieleGefiltert(wb){ return D.spiele.filter(g=>!wb || wb==='all' || spielWb(g)===wb); }
+function spielerSpielStats(wb){
+  const map = {};
+  D.players.forEach(p=>map[p]={name:p, spiele:0, start:0, min:0, tore:0, vorl:0});
+  let maxMin = 0;
+  spieleGefiltert(wb).forEach(g=>{
+    maxMin += +g.dauer||0;
+    Object.entries(g.spieler||{}).forEach(([n,v])=>{
+      if(!v.einsatz) return;
+      if(!map[n]) map[n]={name:n, spiele:0, start:0, min:0, tore:0, vorl:0};
+      map[n].spiele++; if(v.einsatz==='start') map[n].start++;
+      map[n].min += +v.min||0; map[n].tore += +v.tore||0; map[n].vorl += +v.vorl||0;
+    });
+  });
+  return {rows:Object.values(map), maxMin};
+}
+let spieleSort = {key:'min', dir:-1};
+function sortSpiele(k){ spieleSort = {key:k, dir: spieleSort.key===k ? -spieleSort.dir : (k==='name'?1:-1)}; renderSpiele(); }
+function renderSpiele(){
+  const liste = document.getElementById('spiele-liste'); if(!liste) return;
+  const wbSel = document.getElementById('spiele-wb'); const wb = wbSel ? wbSel.value : 'all';
+  const games = spieleGefiltert(wb).sort((a,b)=>b.datum.localeCompare(a.datum));
+  let s=0,u=0,n=0; games.forEach(g=>{ const c=spielErgebnis(g).cls; if(c==='res-s')s++; else if(c==='res-u')u++; else if(c==='res-n')n++; });
+  document.getElementById('spiele-bilanz').textContent = games.length ? `${s} S · ${u} U · ${n} N` : '';
+  liste.innerHTML = games.length ? games.map(g=>{
+    const r = spielErgebnis(g);
+    const scorer = Object.entries(g.spieler||{}).filter(([_,v])=>+v.tore>0).map(([k,v])=>esc(k)+(+v.tore>1?` (${+v.tore})`:'')).join(', ');
+    return `<div class="entry-card"><div class="entry-hdr" style="align-items:center">
+      <span class="entry-date">${fmtDate(g.datum)}</span>
+      <span style="flex:1;font-weight:700;color:#003d5c;margin:0 8px">${g.ort==='H'?'vs.':'@'} ${esc(g.gegner)}</span>
+      ${wbBadge(g)} <span class="res ${r.cls}" style="margin-left:6px;${r.cls?'':'background:#bbb'}">${r.txt}</span></div>
+      ${scorer?`<div style="font-size:.78rem;color:#555;margin-top:4px">⚽ ${scorer}</div>`:''}
+      ${g.link?`<div style="font-size:.75rem;margin-top:3px"><a href="${esc(g.link)}" target="_blank" rel="noopener">Spiel auf fussball.de ↗</a></div>`:''}
+    </div>`;
+  }).join('') : '<p style="color:#aaa;font-style:italic;font-size:.85rem">Noch keine Spiele erfasst.</p>';
+  const {rows} = spielerSpielStats(wb);
+  const k=spieleSort.key, d=spieleSort.dir;
+  rows.sort((a,b)=> k==='name' ? d*a.name.localeCompare(b.name) : d*(a[k]-b[k]) || a.name.localeCompare(b.name));
+  const th = (key,label)=>`<th style="cursor:pointer" onclick="sortSpiele('${key}')">${label}${k===key?(d>0?' ▲':' ▼'):''}</th>`;
+  document.getElementById('spiele-stats').innerHTML = `<table><thead><tr>${th('name','Spieler')}${th('spiele','Spiele')}${th('start','Startelf')}${th('min','Minuten')}${th('tore','Tore')}${th('vorl','Vorlagen')}</tr></thead><tbody>
+    ${rows.map(r=>`<tr><td style="font-weight:600">${esc(r.name)}</td><td>${r.spiele}</td><td>${r.start}</td><td style="font-weight:700;color:#005078">${r.min}</td><td>${r.tore}</td><td>${r.vorl}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function renderSpielerSpielKarte(player){
+  if(!D.spiele.length) return '';
+  const {rows, maxMin} = spielerSpielStats('all');
+  const me = rows.find(r=>r.name===player) || {spiele:0,start:0,min:0,tore:0,vorl:0};
+  const quote = maxMin ? Math.round(me.min/maxMin*100) : 0;
+  const perWb = WETTBEWERBE.map(w=>{
+    const st = spielerSpielStats(w); const r = st.rows.find(x=>x.name===player) || {spiele:0,start:0,min:0,tore:0,vorl:0};
+    return Object.assign({wb:w, quote: st.maxMin ? Math.round(r.min/st.maxMin*100) : 0, gesamt: spieleGefiltert(w).length}, r);
+  }).filter(r=>r.gesamt);
+  const mine = D.spiele.filter(g=>g.spieler && g.spieler[player] && g.spieler[player].einsatz).sort((a,b)=>b.datum.localeCompare(a.datum));
+  return `<div class="card"><div class="card-title">🏟️ Spiele</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px">
+      <div><div class="ov-n" style="font-size:1.6rem">${me.spiele}</div><div class="ov-l">Spiele</div></div>
+      <div><div class="ov-n" style="font-size:1.6rem">${me.start}</div><div class="ov-l">Startelf</div></div>
+      <div><div class="ov-n" style="font-size:1.6rem">${me.min}</div><div class="ov-l">Minuten (${quote} %)</div></div>
+      <div><div class="ov-n" style="font-size:1.6rem">${me.tore}</div><div class="ov-l">Tore</div></div>
+      <div><div class="ov-n" style="font-size:1.6rem">${me.vorl}</div><div class="ov-l">Vorlagen</div></div>
+    </div>
+    ${perWb.length>1 || (perWb.length===1 && perWb[0].wb!=='Landesliga') ? `<div style="overflow-x:auto;margin-bottom:10px"><table><thead><tr><th>Wettbewerb</th><th>Spiele</th><th>Startelf</th><th>Minuten</th><th>Tore</th></tr></thead><tbody>
+      ${perWb.map(r=>`<tr><td><span class="wb-badge wb-${r.wb.toLowerCase()}">${r.wb}</span></td><td>${r.spiele} <span style="color:#aaa;font-size:.72rem">von ${r.gesamt}</span></td><td>${r.start}</td><td style="font-weight:700;color:#005078">${r.min} <span style="color:#aaa;font-size:.72rem;font-weight:400">(${r.quote} %)</span></td><td>${r.tore}</td></tr>`).join('')}
+    </tbody></table></div>` : ''}
+    ${mine.length?`<div style="overflow-x:auto"><table><thead><tr><th>Datum</th><th>Gegner</th><th>Wettb.</th><th>Erg.</th><th>Min.</th><th>Tore</th></tr></thead><tbody>
+      ${mine.map(g=>{const v=g.spieler[player], r=spielErgebnis(g); return `<tr><td>${fmtDate(g.datum)}</td><td>${g.ort==='H'?'vs.':'@'} ${esc(g.gegner)}</td><td>${wbBadge(g)}</td><td><span class="res ${r.cls}" style="min-width:36px;${r.cls?'':'background:#bbb'}">${r.txt}</span></td><td>${+v.min||0}${v.einsatz==='start'?'':' <span style="font-size:.7rem;color:#888">(eingew.)</span>'}</td><td>${+v.tore||''}</td></tr>`;}).join('')}
+    </tbody></table></div>`:''}
+  </div>`;
+}
+
+// ── FUSSBALL.DE-IMPORT (Kopieren & Einfügen) ─────────────────
+// Liest den aus dem Browser kopierten Text der Reiter „Aufstellung“ und „Spielverlauf“.
+// Grundregel von fussball.de: Ereignisse der Heimmannschaft stehen VOR ihrer Minute,
+// Ereignisse der Gastmannschaft NACH ihrer Minute. Das Ergebnis selbst ist verschleiert
+// und wird deshalb aus den Toren berechnet.
+function fbdeTokenize(text){
+  const toks = [];
+  const re = /(\d{1,3})\s*([’'′`´])|(Gelb-?Rote Karte|Gelbe Karte|Rote Karte|Auswechslung|Einwechslung)|\b(für)\b|k\.\s*A\.\s*\(?\s*(\d{1,2})\s*\)?|\((\d{1,2})\)|(:)/g;
+  text.split('\n').forEach(line=>{
+    line = line.replace(/\d{1,2}:\d{2}\s*Uhr/gi,' ');
+    let last = 0, m;
+    const pushName = seg=>{
+      const nm = seg.match(/[A-ZÄÖÜ][a-zäöüßéè\-]+(?:\s+[A-ZÄÖÜ][a-zäöüßéè\-]+){1,3}/);
+      if(nm) toks.push({t:'REF', name:nm[0]});
+    };
+    while((m = re.exec(line))){
+      pushName(line.slice(last, m.index));
+      if(m[1]) toks.push({t:'MIN', m:+m[1], div: m[2]==="'"});
+      else if(m[3]) toks.push({t:'KW', kw:/Ausw|Einw/.test(m[3])?'sub':'card'});
+      else if(m[4]) toks.push({t:'FUER'});
+      else if(m[5]||m[6]) toks.push({t:'REF', nr:+(m[5]||m[6])});
+      else if(m[7]) toks.push({t:'COLON'});
+      last = re.lastIndex;
+    }
+    pushName(line.slice(last));
+  });
+  return toks.filter(x=>!(x.t==='MIN' && x.div)); // Halbzeit-/Schlussmarker (gerades ') ignorieren
+}
+function fbdeEvents(toks){
+  const used = new Set(), ev = [];
+  const isRefColon = i => toks[i] && toks[i].t==='REF' && toks[i+1] && toks[i+1].t==='COLON';
+  const isCoreStart = i => toks[i] && (toks[i].t==='KW' || toks[i].t==='COLON' || isRefColon(i));
+  let i = 0;
+  while(i < toks.length){
+    if(!isCoreStart(i)){ i++; continue; }
+    const s = i; const e = {};
+    if(toks[i].t==='KW'){
+      e.typ = toks[i].kw; i++;
+      if(e.typ==='sub'){
+        if(toks[i] && toks[i].t==='REF' && !isRefColon(i)){ e.rein = toks[i]; i++; }
+        if(toks[i] && toks[i].t==='FUER'){ i++; if(toks[i] && toks[i].t==='REF' && !isRefColon(i)){ e.raus = toks[i]; i++; } }
+      } else if(toks[i] && toks[i].t==='REF' && !isRefColon(i)){ e.ref = toks[i]; i++; }
+    } else {
+      e.typ = 'tor';
+      if(toks[i].t==='REF'){ e.vor = toks[i]; i++; }
+      i++; // Doppelpunkt
+      if(toks[i] && toks[i].t==='REF' && !isRefColon(i)){ e.nach = toks[i]; i++; }
+    }
+    const prev = s-1, next = i;
+    const prevFree = toks[prev] && toks[prev].t==='MIN' && !used.has(prev);
+    const nextMin = toks[next] && toks[next].t==='MIN';
+    const nextOrphan = nextMin && !isCoreStart(next+1);
+    if(nextMin && (nextOrphan || !prevFree)){ e.seite='heim'; e.min=toks[next].m; used.add(next); i = next+1; }
+    else if(prevFree){ e.seite='gast'; e.min=toks[prev].m; used.add(prev); }
+    else continue;
+    if(e.typ==='tor') e.schuetze = e.seite==='heim' ? (e.vor||null) : (e.nach||null);
+    ev.push(e);
+  }
+  return ev;
+}
+function fbdeLineup(text){
+  const teams = [];
+  text.split('\n').forEach(l=>{ const t=l.trim(); if(/Jun\.|Junioren|Juniorinnen/.test(t) && t.length<60 && !teams.includes(t)) teams.push(t); });
+  const a = text.search(/Aufstellungen|Aufstellung\s*\n/);
+  if(a<0) return {teams, start:[[],[]], bank:[[],[]]};
+  let rest = text.slice(a);
+  const tIdx = rest.search(/Trainer|Anpfiff|Spielverlauf/);
+  if(tIdx>0) rest = rest.slice(0,tIdx);
+  rest = rest.split('\n').filter(l=>!/Jun\.|Junioren|Juniorinnen/.test(l)).join('\n');
+  const parts = rest.split(/Ersatzbank/);
+  const grab = s => { const out=[]; const re=/(k\.\s*A\.\s*)?(?:^|[^\d.])(\d{2})(?!\d)/g; let m; while((m=re.exec(s))) out.push({nr:+m[2], profil:!m[1]}); return out; };
+  const startAll = grab(parts[0].replace(/Aufstellungen?/,''));
+  const benches = parts.slice(1).map(grab).filter(x=>x.length);
+  return {teams, startAll, bank:[benches[0]||[], benches[1]||[]]};
+}
+function fbdeParse(text, teamKey, dauer){
+  text = text.replace(/\r/g,'');
+  const lu = fbdeLineup(text);
+  const key = (teamKey||'Victoria').toLowerCase();
+  const ourIdx = lu.teams.findIndex(t=>t.toLowerCase().includes(key));
+  const heim = ourIdx<=0; // erste genannte Mannschaft = Heim
+  const gegnerRaw = lu.teams.find((t,i)=>i!==ourIdx && i<2) || '';
+  const gegner = gegnerRaw.replace(/\s*\d+\.\s*[A-G]-Jun.*$/,'').replace(/\s*\(.*\)\s*$/,'').trim();
+  // Startelf beider Teams trennen (meist 11/11, sonst Aufteilung mit bester Übereinstimmung zu unseren Nummern)
+  const all = lu.startAll || [];
+  const known = new Set(Object.values(D.rueckennummern||{}).map(Number));
+  let k = Math.round(all.length/2);
+  if(all.length===22) k = 11;
+  else if(known.size){
+    let best=-1e9;
+    for(let c=Math.max(1,all.length-12); c<=Math.min(all.length-1,12); c++){
+      const ours = heim ? all.slice(0,c) : all.slice(c);
+      const sc = ours.filter(p=>known.has(p.nr)).length*2 - ours.length;
+      if(sc>best){ best=sc; k=c; }
+    }
+  }
+  const start = heim ? all.slice(0,k) : all.slice(k);
+  const bank = heim ? lu.bank[0] : lu.bank[1];
+  const seite = heim ? 'heim' : 'gast';
+  let evText = text; const ai = text.search(/Anpfiff/);
+  if(ai>=0){ evText = text.slice(ai); const bi = evText.search(/Abpfiff/); if(bi>0) evText = evText.slice(0,bi); }
+  const evs = fbdeEvents(fbdeTokenize(evText));
+  const profis = [...start, ...bank].filter(p=>p.profil).map(p=>p.nr);
+  const inv = {}; Object.entries(D.rueckennummern||{}).forEach(([n,nr])=>inv[nr]=n);
+  const warn = [];
+  const refNr = r=>{
+    if(r && r.nr) return r.nr;
+    if(r && r.name){
+      const first = r.name.split(/\s+/)[0].toUpperCase();
+      const p = D.players.find(p=>p.toUpperCase()===first || r.name.toUpperCase().includes(p.toUpperCase()));
+      if(p && D.rueckennummern[p]) return D.rueckennummern[p];
+    }
+    if(profis.length===1) return profis[0];
+    return null;
+  };
+  const sp = {}; const get = nr=>sp[nr]=sp[nr]||{nr, start:false, rein:null, raus:null, tore:0};
+  start.forEach(p=>get(p.nr).start=true);
+  bank.forEach(p=>get(p.nr));
+  let te=0, tg=0, unbekannt=0;
+  evs.forEach(e=>{
+    if(e.typ==='tor'){ if(e.seite===seite){ te++; const nr=refNr(e.schuetze); if(nr) get(nr).tore++; else unbekannt++; } else tg++; }
+    if(e.typ==='sub' && e.seite===seite){
+      const r=refNr(e.rein), o=refNr(e.raus);
+      if(r) get(r).rein=e.min; if(o) get(o).raus=e.min;
+      if(!r||!o) warn.push(`Wechsel in der ${e.min}. Minute nicht vollständig erkannt – bitte Minuten prüfen.`);
+    }
+  });
+  if(unbekannt) warn.push(`${unbekannt} Tor(e) konnte(n) keinem Spieler zugeordnet werden – bitte im Formular nachtragen.`);
+  const spieler = Object.values(sp).map(p=>{
+    const spielte = p.start || p.rein!==null;
+    const min = spielte ? Math.max(0, (p.raus ?? dauer) - (p.start ? 0 : p.rein)) : 0;
+    return Object.assign(p, {spielte, min, name: inv[p.nr]||null});
+  }).sort((a,b)=>(b.spielte-a.spielte) || (b.start-a.start) || a.nr-b.nr);
+  if(!start.length) warn.push('Keine Aufstellung gefunden – bitte auch den Reiter „Aufstellung“ mitkopieren.');
+  if(!evs.length) warn.push('Kein Spielverlauf gefunden – bitte auch den Reiter „Spielverlauf“ mitkopieren.');
+  return {gegner, heim, te, tg, spieler, warn, teams:lu.teams};
+}
+
+let fbdeLast = null;
+function fbdeAuswerten(){
+  const txt = document.getElementById('fbde-text').value;
+  const box = document.getElementById('fbde-preview');
+  if(!txt.trim()){ box.innerHTML='<p style="color:#c0392b;font-size:.8rem">Bitte zuerst den Text einfügen.</p>'; return; }
+  const dauer = parseInt(document.getElementById('g-dauer').value,10)||70;
+  let r; try{ r = fbdeParse(txt, document.getElementById('fbde-key').value, dauer); }
+  catch(e){ console.error(e); box.innerHTML='<p style="color:#c0392b;font-size:.8rem">Der Text konnte nicht ausgewertet werden. Bitte beide Reiter komplett kopieren.</p>'; return; }
+  fbdeLast = r;
+  const opts = sel => '<option value="">– Spieler wählen –</option>'+D.players.slice().sort().map(p=>`<option value="${esc(p)}"${p===sel?' selected':''}>${esc(p)}</option>`).join('');
+  const rows = r.spieler.map((p,i)=>`<tr style="${p.spielte?'':'opacity:.5'}">
+      <td style="font-weight:700">${p.nr}</td>
+      <td>${p.name ? esc(p.name) : `<select class="fbde-map" data-i="${i}">${opts('')}</select>`}</td>
+      <td>${p.spielte ? (p.start ? 'Start' : `ab ${p.rein}.`) : 'Bank'}${p.raus!==null && p.spielte ? ` · raus ${p.raus}.` : ''}</td>
+      <td style="font-weight:700">${p.spielte ? p.min : ''}</td>
+      <td>${p.tore||''}</td></tr>`).join('');
+  box.innerHTML = `<div style="margin-top:10px;font-size:.85rem"><b>${r.heim?'Heim':'Auswärts'}</b> gegen <b>${esc(r.gegner||'?')}</b> · Ergebnis <b>${r.te}:${r.tg}</b></div>
+    ${r.warn.map(w=>`<div style="font-size:.78rem;color:#b9770e;margin-top:4px">⚠ ${esc(w)}</div>`).join('')}
+    ${r.spieler.some(p=>!p.name) ? '<div style="font-size:.78rem;color:#8e44ad;margin-top:4px">Für Nummern ohne Namen bitte einmal den Spieler wählen – die Nummer wird dann dauerhaft gemerkt.</div>' : ''}
+    <div style="overflow-x:auto;margin-top:6px"><table><thead><tr><th>Nr.</th><th>Spieler</th><th>Einsatz</th><th>Min.</th><th>Tore</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div style="font-size:.78rem;color:#005078;margin-top:6px">Wettbewerb (Landesliga / Pokal / Testspiel) bitte oben im Formular auswählen.</div>
+    <button class="btn bg" style="margin-top:8px" onclick="fbdeUebernehmen()">✓ Ins Formular übernehmen</button>`;
+}
+function fbdeUebernehmen(){
+  const r = fbdeLast; if(!r) return;
+  let mapChanged = false;
+  document.querySelectorAll('#fbde-preview .fbde-map').forEach(sel=>{
+    if(!sel.value) return;
+    const p = r.spieler[+sel.dataset.i];
+    p.name = sel.value; D.rueckennummern[sel.value] = p.nr; mapChanged = true;
+  });
+  const fehlt = r.spieler.filter(p=>p.spielte && !p.name);
+  if(fehlt.length && !confirm(`Nr. ${fehlt.map(p=>p.nr).join(', ')} ist noch keinem Spieler zugeordnet und wird nicht übernommen. Trotzdem fortfahren?`)) return;
+  if(mapChanged){ save(); renderAdminPlayers(); }
+  document.getElementById('g-gegner').value = r.gegner;
+  document.getElementById('g-ort').value = r.heim ? 'H' : 'A';
+  document.getElementById('g-te').value = r.te;
+  document.getElementById('g-tg').value = r.tg;
+  renderSpielForm(true);
+  document.querySelectorAll('#g-rows tr').forEach(tr=>{
+    const p = r.spieler.find(x=>x.name===tr.dataset.name);
+    tr.querySelector('.g-ein').value = p && p.spielte ? (p.start ? 'start' : 'joker') : '';
+    tr.querySelector('.g-min').value = p && p.spielte ? p.min : '';
+    tr.querySelector('.g-tore').value = p && p.tore ? p.tore : '';
+    if(p) tr.querySelector('.g-nr').value = p.nr;
+  });
+  document.getElementById('fbde-box').open = false;
+  alert('✓ Übernommen. Bitte noch das Datum eintragen, kurz prüfen und dann „Spiel speichern“.');
+}
+
+// ── ADMIN: SPIEL ERFASSEN ────────────────────────────────────
+let editSpielId = null;
+function renderSpielForm(keep){
+  const tb = document.getElementById('g-rows'); if(!tb) return;
+  const g = editSpielId ? D.spiele.find(x=>x.id===editSpielId) : null;
+  if(!keep){
+    document.getElementById('g-datum').value = g ? g.datum : todayISO();
+    document.getElementById('g-gegner').value = g ? g.gegner : '';
+    document.getElementById('g-ort').value = g ? g.ort : 'H';
+    document.getElementById('g-te').value = g ? g.toreEigen : '';
+    document.getElementById('g-tg').value = g ? g.toreGegner : '';
+    document.getElementById('g-dauer').value = g ? g.dauer : 70;
+    document.getElementById('g-wb').value = g ? spielWb(g) : 'Landesliga';
+    document.getElementById('g-link').value = g ? (g.link||'') : '';
+    document.getElementById('g-mode').textContent = g ? `✎ Bearbeite Spiel vom ${fmtDate(g.datum)}` : '';
+  }
+  const names = D.players.slice();
+  if(g) Object.keys(g.spieler||{}).forEach(n=>{ if(!names.includes(n)) names.push(n); });
+  tb.innerHTML = names.map((p,i)=>{
+    const v = (g && g.spieler && g.spieler[p]) || {};
+    const nr = v.nr ?? D.rueckennummern[p] ?? '';
+    return `<tr data-name="${esc(p)}"><td style="font-weight:600">${esc(p)}</td>
+      <td><input type="number" min="1" max="99" class="g-nr" value="${nr}" style="width:52px"></td>
+      <td><select class="g-ein" onchange="spielEinsatzChanged(this)"><option value="">–</option><option value="start"${v.einsatz==='start'?' selected':''}>Start</option><option value="joker"${v.einsatz==='joker'?' selected':''}>Eingewechselt</option></select></td>
+      <td><input type="number" min="0" class="g-min" value="${v.min??''}" style="width:56px"></td>
+      <td><input type="number" min="0" class="g-tore" value="${v.tore||''}" style="width:46px"></td>
+      <td><input type="number" min="0" class="g-vorl" value="${v.vorl||''}" style="width:46px"></td></tr>`;
+  }).join('');
+}
+function spielEinsatzChanged(sel){
+  const row = sel.closest('tr'), minEl = row.querySelector('.g-min');
+  if(sel.value==='start' && !minEl.value) minEl.value = document.getElementById('g-dauer').value || 70;
+  if(sel.value==='') minEl.value = '';
+}
+function resetSpielForm(){ editSpielId = null; renderSpielForm(); }
+function saveSpiel(){
+  const datum = document.getElementById('g-datum').value;
+  const gegner = document.getElementById('g-gegner').value.trim();
+  if(!datum || !gegner){ alert('Bitte Datum und Gegner eintragen.'); return; }
+  const num = id => { const v=document.getElementById(id).value; return v===''?'':parseInt(v,10); };
+  const spieler = {};
+  document.querySelectorAll('#g-rows tr').forEach(tr=>{
+    const name = tr.dataset.name;
+    const ein = tr.querySelector('.g-ein').value;
+    const nr = parseInt(tr.querySelector('.g-nr').value,10);
+    if(!ein) return;
+    spieler[name] = {einsatz:ein, nr: isNaN(nr)?null:nr,
+      min: parseInt(tr.querySelector('.g-min').value,10)||0,
+      tore: parseInt(tr.querySelector('.g-tore').value,10)||0,
+      vorl: parseInt(tr.querySelector('.g-vorl').value,10)||0};
+  });
+  if(!Object.keys(spieler).length && !confirm('Es ist kein Spieler mit Einsatz markiert. Trotzdem speichern?')) return;
+  const tore = Object.values(spieler).reduce((a,v)=>a+v.tore,0);
+  const te = num('g-te');
+  if(te!=='' && tore>te && !confirm(`Den Spielern sind ${tore} Tore zugeordnet, das Ergebnis hat aber nur ${te} eigene Tore. Trotzdem speichern?`)) return;
+  const g = {id: editSpielId || ('g'+Date.now()), datum, gegner,
+    ort: document.getElementById('g-ort').value, toreEigen: te, toreGegner: num('g-tg'),
+    dauer: num('g-dauer')||70, wettbewerb: document.getElementById('g-wb').value,
+    link: document.getElementById('g-link').value.trim(), spieler};
+  const i = D.spiele.findIndex(x=>x.id===g.id);
+  if(i>=0) D.spiele[i]=g; else D.spiele.push(g);
+  editSpielId = null;
+  save(); renderAll(); adminRefresh();
+  alert('✓ Spiel gespeichert.');
+}
+function editSpiel(id){ editSpielId = id; renderSpielForm(); const el=document.getElementById('g-datum'); if(el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'center'}); }
+function deleteSpiel(id){
+  const g = D.spiele.find(x=>x.id===id); if(!g) return;
+  if(!confirm(`Spiel vom ${fmtDate(g.datum)} gegen ${g.gegner} wirklich löschen?`)) return;
+  D.spiele = D.spiele.filter(x=>x.id!==id);
+  if(editSpielId===id) editSpielId=null;
+  save(); renderAll(); adminRefresh();
+}
+function renderAdminSpiele(){
+  const el = document.getElementById('admin-spiele'); if(!el) return;
+  const games = D.spiele.slice().sort((a,b)=>b.datum.localeCompare(a.datum));
+  el.innerHTML = games.map(g=>`<div class="plist-item"><span>${fmtDate(g.datum)} · ${spielWb(g)} · ${g.ort==='H'?'vs.':'@'} ${esc(g.gegner)} · ${spielErgebnis(g).txt}</span>
+    <button class="small-btn" style="background:#005078" onclick="editSpiel('${g.id}')">✎</button>
+    <button class="small-btn" style="background:#c0392b" onclick="deleteSpiel('${g.id}')">🗑</button></div>`).join('');
 }
 
 // ── RENDER: INDIVIDUELLE ENTWICKLUNG ─────────────────────────
@@ -1780,7 +2218,7 @@ async function adminResetSlot(id){
 
 function renderAll(){
   const steps = [fillFilterSelects, renderOverview, renderTabelle, renderVerlauf,
-                 renderMeinSpieler, renderLeistung, renderVideo, renderEntwicklung];
+                 renderMeinSpieler, renderLeistung, renderVideo, renderEntwicklung, renderSpiele];
   steps.forEach(fn=>{ try{ fn(); } catch(e){ console.error(fn.name+' fehlgeschlagen:', e); } });
 }
 
@@ -1837,7 +2275,7 @@ function checkDateWarn(){
 }
 
 function adminRefresh(){
-  const steps = [fillFilterSelects, renderAdminPoints, renderAdminVerlauf, renderAdminPlayers, renderAdminVideo, fillEntwPlayerSelect];
+  const steps = [fillFilterSelects, renderAdminPoints, renderAdminVerlauf, renderAdminPlayers, renderAdminVideo, fillEntwPlayerSelect, renderSpielForm, renderAdminSpiele];
   steps.forEach(fn=>{ try{ fn(); } catch(e){ console.error(fn.name+' fehlgeschlagen:', e); } });
 }
 
@@ -1935,8 +2373,15 @@ function deleteEntry(id){
 
 function renderAdminPlayers(){
   document.getElementById('admin-players').innerHTML = D.players.map((p,i)=>`
-    <div class="plist-item"><span>${p}</span><button class="small-btn" style="background:#c0392b" onclick="removePlayer(${i})">🗑 Entfernen</button></div>
+    <div class="plist-item"><span>${p}</span><label style="font-size:.72rem;color:#888">Nr.</label><input type="number" min="1" max="99" value="${D.rueckennummern[p]??''}" style="width:56px;padding:4px" onchange="setNummer('${p}',this.value)"><button class="small-btn" style="background:#c0392b" onclick="removePlayer(${i})">🗑 Entfernen</button></div>
   `).join('');
+}
+function setNummer(name, val){
+  const n = parseInt(val,10);
+  const owner = Object.keys(D.rueckennummern).find(k=>k!==name && D.rueckennummern[k]===n);
+  if(n && owner && !confirm(`Die Nr. ${n} hat aktuell ${owner}. Trotzdem auch ${name} zuordnen?`)){ renderAdminPlayers(); return; }
+  if(n) D.rueckennummern[name] = n; else delete D.rueckennummern[name];
+  save();
 }
 function addPlayer(){
   const inp = document.getElementById('a-newplayer');
