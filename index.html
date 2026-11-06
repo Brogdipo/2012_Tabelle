@@ -122,6 +122,7 @@ tr:hover td{background:#f4f7fa}
 .sp-card li::before{content:'▸';position:absolute;left:0;top:0;color:#005078;font-weight:900}
 .sp-ex{display:block;color:#8a97a3;font-size:.76rem;font-style:italic;margin-top:2px}
 .sp-card.sp-wide{grid-column:1/-1}
+.sp-big{font-size:1.15em;font-weight:800;color:#005078}
 .sp-kw{font-size:.95rem;font-weight:900;color:#005078;letter-spacing:.3px}
 .sp-ex.sp-ex-kw{font-style:normal;color:#2c3e50;font-size:.82rem}
 .sv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px}
@@ -1399,10 +1400,12 @@ function taktikSvg(spec){
     ${el}</svg>`;
 }
 const TK_LEGENDE = `<div class="sv-legend"><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#005078" stroke="#fad200" stroke-width="2"/></svg> wir</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#c0392b"/></svg> Gegner</span><span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#005078" stroke-width="2"/></svg> Ball / Pass</span><span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#c9a400" stroke-width="2" stroke-dasharray="5 3"/></svg> Laufweg</span><span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#005078" stroke-width="2" stroke-dasharray="2 3"/></svg> Dribbling</span></div>`;
+// Einfache Hervorhebungen im Editor: **fett** und ++größer++
+function fmt(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\+\+(.+?)\+\+/g,'<span class="sp-big">$1</span>'); }
 function renderVarianten(a){
   if(!(a.varianten||[]).length) return '';
   return `<div class="sv-grid">${a.varianten.map(v=>`<div class="sv-card">${v.skizze?taktikSvg(v.skizze):''}<h4>${esc(v.titel)}</h4>
-    <ul>${(v.punkte||[]).map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`).join('')}</div>${a.varianten.some(v=>v.skizze)?TK_LEGENDE:''}`;
+    <ul>${(v.punkte||[]).map(p=>`<li>${fmt(p)}</li>`).join('')}</ul></div>`).join('')}</div>${a.varianten.some(v=>v.skizze)?TK_LEGENDE:''}`;
 }
 function renderSpielprinzipien(){
   const P = D.prinzipien, has = !!(P && P.abschnitte && P.abschnitte.length);
@@ -1412,18 +1415,18 @@ function renderSpielprinzipien(){
   const h = P.hero || {};
   let html = `<div class="sp-hero"><h2>${esc(h.titel||'Spielprinzipien')}</h2>
     ${(h.tags||[]).length?`<div class="sp-tagline">${h.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
-    ${h.text?`<p>${esc(h.text)}</p>`:''}</div><div class="sp-grid">`;
+    ${h.text?`<p>${fmt(h.text)}</p>`:''}</div><div class="sp-grid">`;
   P.abschnitte.forEach(a=>{
     if(a.typ==='zonen'){
       html += `<div class="sp-card sp-wide"><h3><span class="sp-num">${a.nr}</span> ${a.icon||''} ${esc(a.titel)}</h3>
-        ${a.intro?`<p style="font-size:.84rem;color:#2c3e50;margin-bottom:10px;line-height:1.45">${esc(a.intro)}</p>`:''}
+        ${a.intro?`<p style="font-size:.84rem;color:#2c3e50;margin-bottom:10px;line-height:1.45">${fmt(a.intro)}</p>`:''}
         <div class="tz-wrap"><div>${TZ_SVG}
-          ${(a.hinweise||[]).length?`<ul style="margin-top:10px">${a.hinweise.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
+          ${(a.hinweise||[]).length?`<ul style="margin-top:10px">${a.hinweise.map(x=>`<li>${fmt(x)}</li>`).join('')}</ul>`:''}</div>
         <div>${(a.zonen||[]).map(z=>`<div class="tz-zone"><h4><span class="sp-num">${z.nr}</span> Zone ${z.nr} · ${esc(z.name)}</h4>
-          <div><b>Technik:</b> ${esc(z.technik)}</div><div><b>Kontakte:</b> ${esc(z.kontakte)}</div><div><b>Spielsituationen:</b> ${esc(z.situationen)}</div></div>`).join('')}</div></div></div>`;
+          <div><b>Technik:</b> ${fmt(z.technik)}</div><div><b>Kontakte:</b> ${fmt(z.kontakte)}</div><div><b>Spielsituationen:</b> ${fmt(z.situationen)}</div></div>`).join('')}</div></div></div>`;
     } else {
       html += `<div class="sp-card${((a.punkte||[]).length<=2 || (a.varianten||[]).length)?' sp-wide':''}"><h3><span class="sp-num">${a.nr}</span> ${a.icon||''} ${esc(a.titel)}</h3><ul>
-        ${(a.punkte||[]).map(p=>`<li>${p.t.length<=28?`<b class="sp-kw">${esc(p.t)}</b>`:esc(p.t)}${p.d?`<span class="sp-ex${p.t.length<=28?' sp-ex-kw':''}">${esc(p.d)}</span>`:''}</li>`).join('')}</ul>${renderVarianten(a)}</div>`;
+        ${(a.punkte||[]).map(p=>`<li>${p.t.replace(/\*\*|\+\+/g,'').length<=28?`<b class="sp-kw">${fmt(p.t)}</b>`:fmt(p.t)}${p.d?`<span class="sp-ex${p.t.replace(/\*\*|\+\+/g,'').length<=28?' sp-ex-kw':''}">${fmt(p.d)}</span>`:''}</li>`).join('')}</ul>${renderVarianten(a)}</div>`;
     }
   });
   box.innerHTML = html + '</div>';
@@ -1525,6 +1528,7 @@ function renderAdminPrinzipien(){
             <div class="fg"><label>Taktik ${k+1}${v.skizze?' (mit Skizze)':''}</label><input id="spd-v-${i}-${k}-t" value="${esc(v.titel)}"></div>
             <div class="fg"><label>Stichpunkte – eine Zeile pro Punkt</label><textarea id="spd-v-${i}-${k}-p" rows="${Math.max(3,(v.punkte||[]).length+1)}">${esc((v.punkte||[]).join('\n'))}</textarea></div></div>`).join('')}`}
       </div>`).join('')}
+    <div style="font-size:.75rem;color:#005078;background:#eef5fa;border-radius:6px;padding:6px 8px;margin:8px 0">✍️ Formatierung in allen Textfeldern: <b>**fett**</b> → <b>fett</b> · <b>++größer++</b> → <span class="sp-big">größer</span>. Kurze Punkte (bis ca. 3 Wörter) erscheinen automatisch als großes Schlagwort.</div>
     <div class="fg" style="margin-top:8px"><label>🎯 Fokus der Woche (erscheint auf der Übersicht)</label><select id="spd-fokus">${fokusOpts}</select></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       <button class="btn bg" onclick="spdSave()">💾 Speichern &amp; veröffentlichen</button>
